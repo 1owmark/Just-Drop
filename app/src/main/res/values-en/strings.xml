@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Just Drop</string>
+
+    <string name="searching_devices">searching for devices...</string>
+    <string name="devices_not_found">No devices found</string>
+    <string name="same_network_hint">Make sure the devices are connected to the same network</string>
+</resources>
