@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Just Drop</string>
+    <string name="searching_devices">поиск устройств...</string>
+    <string name="devices_not_found">Устройства не найдены</string>
+    <string name="same_network_hint">Убедитесь, что устройства подключены к одной сети.</string>
+</resources>
