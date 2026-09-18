@@ -1,7 +1,6 @@
 package com.daniloff.justdrop.ui.theme
 
 
-
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -15,6 +14,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,13 +31,17 @@ import com.daniloff.justdrop.ui.components.SearchIndicator
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {
-
     val context = LocalContext.current
     val deviceDiscovery = remember { DeviceDiscovery(context) }
     val httpServer = remember { HttpServer() }
+    val devices = deviceDiscovery.discoveredDevices.collectAsState()
 
     LaunchedEffect(Unit) {
         httpServer.start()
+    }
+
+    LaunchedEffect(Unit) {
+        deviceDiscovery.discover()
     }
 
 
@@ -72,9 +76,15 @@ fun MainScreen() {
 
             Spacer(Modifier.height(8.dp))
 
-            Text(text = stringResource(R.string.searching_devices),
+            Text(
+                text = stringResource(R.string.searching_devices),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground)
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Text(
+                text = "Найдено устройств: ${devices.value.size}"
+            )
         }
     }
 }
