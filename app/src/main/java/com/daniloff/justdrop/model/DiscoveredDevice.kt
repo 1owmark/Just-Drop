@@ -1,5 +1,5 @@
 package com.daniloff.justdrop.model
 
-import java.net.InetAddress
+import java.net.Inet4Address
 
-data class DiscoveredDevice(val serviceName: String, val host: InetAddress, val port: Int)
+data class DiscoveredDevice(val serviceName: String, val host: Inet4Address, val port: Int)

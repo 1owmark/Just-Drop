@@ -1,6 +1,7 @@
 package com.daniloff.justdrop.ui.theme
 
 
+import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -38,12 +39,8 @@ fun MainScreen() {
 
     LaunchedEffect(Unit) {
         httpServer.start()
+        deviceDiscovery.start()
     }
-
-    LaunchedEffect(Unit) {
-        deviceDiscovery.discover()
-    }
-
 
     Scaffold() { innerPadding: PaddingValues ->
         Column(
@@ -82,6 +79,10 @@ fun MainScreen() {
                 color = MaterialTheme.colorScheme.onBackground
             )
 
+            Log.d(
+                "Devices",
+                "Compose видит: ${devices.value.size}"
+            )
             Text(
                 text = "Найдено устройств: ${devices.value.size}"
             )

@@ -26,12 +26,12 @@ val Typography = Typography(
     titleMedium = TextStyle(
         fontFamily = InterFontFamily,
         fontWeight = FontWeight.ExtraBold,
-        fontSize = 16.sp
+        fontSize = 18.sp
     ),
 
     bodyMedium = TextStyle(
         fontFamily = InterFontFamily,
         fontWeight = FontWeight.Normal,
-        fontSize = 14.sp
+        fontSize = 16.sp
     )
 )
