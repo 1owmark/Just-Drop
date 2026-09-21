@@ -14,10 +14,8 @@ import io.ktor.server.routing.routing
 import kotlinx.coroutines.*
 
 class HttpServer {
-    private val scope = CoroutineScope(Dispatchers.IO)
-
-    fun start() {
-        val server = scope.embeddedServer(CIO, 0, "0.0.0.0") {
+    suspend fun start(): Int {
+        val server = embeddedServer(CIO, 0, "0.0.0.0") {
 
             install(ContentNegotiation) {
                 json()
@@ -36,10 +34,10 @@ class HttpServer {
         }
         server.start()
 
-        scope.launch {
-            val connectors = server.engine.resolvedConnectors()
-            val connector = connectors[0]
-            Log.d("httpServer", "port = ${connector.port}\nhost = ${connector.host}")
-        }
+        val connectors = server.engine.resolvedConnectors()
+        val connector = connectors[0]
+        val port = connector.port
+        Log.d("httpServer", "port = ${connector.port}\nhost = ${connector.host}")
+        return port
     }
 }

@@ -30,11 +30,11 @@ class DeviceDiscovery(val context: Context) {
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
 
-    fun start() {
+    fun start(httpPort: Int) {
         val serviceInfo = this@DeviceDiscovery.serviceInfo.apply {
             serviceName = context.getString(R.string.app_name)
             serviceType = "_http._tcp."
-            port = 5000
+            port = httpPort
         }
 
         nsdManager.registerService(

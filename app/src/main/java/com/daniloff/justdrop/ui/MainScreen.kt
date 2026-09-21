@@ -24,6 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.daniloff.justdrop.R
+import com.daniloff.justdrop.network.client.JustDropHttpClient
 import com.daniloff.justdrop.network.discovery.DeviceDiscovery
 import com.daniloff.justdrop.network.server.HttpServer
 import com.daniloff.justdrop.ui.components.SearchIndicator
@@ -34,12 +35,21 @@ import com.daniloff.justdrop.ui.components.SearchIndicator
 fun MainScreen() {
     val context = LocalContext.current
     val deviceDiscovery = remember { DeviceDiscovery(context) }
+    val httpClient = remember { JustDropHttpClient() }
     val httpServer = remember { HttpServer() }
     val devices = deviceDiscovery.discoveredDevices.collectAsState()
 
+
     LaunchedEffect(Unit) {
-        httpServer.start()
-        deviceDiscovery.start()
+        val port = httpServer.start()
+        deviceDiscovery.start(port)
+    }
+
+    LaunchedEffect(devices.value) {
+        for (device in devices.value) {
+            val receivedDevice = httpClient.getDevice(device)
+            Log.d("Received Device", "Device: ${receivedDevice.manufacturer}\nModel: ${receivedDevice.model}")
+        }
     }
 
     Scaffold() { innerPadding: PaddingValues ->
