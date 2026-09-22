@@ -7,7 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.Scaffold
 import com.daniloff.justdrop.ui.theme.JustDropTheme
-import com.daniloff.justdrop.ui.theme.MainScreen
+import com.daniloff.justdrop.ui.MainScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

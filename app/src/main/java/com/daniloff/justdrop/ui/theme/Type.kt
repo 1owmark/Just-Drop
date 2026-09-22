@@ -13,7 +13,8 @@ import com.daniloff.justdrop.R
 
 val InterFontFamily = FontFamily(
     Font(resId = R.font.inter_regular, weight = FontWeight.Normal),
-    Font(resId = R.font.inter_extrabold, weight = FontWeight.ExtraBold)
+    Font(resId = R.font.inter_extrabold, weight = FontWeight.ExtraBold),
+    Font(resId = R.font.inter_light, weight = FontWeight.Light)
 )
 
 val Typography = Typography(
@@ -29,9 +30,27 @@ val Typography = Typography(
         fontSize = 18.sp
     ),
 
+    bodyLarge = TextStyle(
+        fontFamily = InterFontFamily,
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = 16.sp
+    ),
+
     bodyMedium = TextStyle(
         fontFamily = InterFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp
+    ),
+
+    bodySmall = TextStyle(
+        fontFamily = InterFontFamily,
+        fontWeight = FontWeight.Light,
+        fontSize = 16.sp
+    ),
+
+    labelMedium = TextStyle(
+        fontFamily = InterFontFamily,
+        fontWeight = FontWeight.Light,
+        fontSize = 14.sp
     )
 )

@@ -12,3 +12,4 @@ val Success = Color(0x654CD97B)
 val Error = Color(0xFFFF5C67)
 
 val OnBackground = Color(0xFFFFFFFF)
+val TextHint = Color(0xFF9A9FA8)
