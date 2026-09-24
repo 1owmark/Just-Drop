@@ -8,4 +8,11 @@
     <string name="add">Добавить</string>
     <string name="send">Отправить</string>
     <string name="cancel">Отмена</string>
+    <plurals name="files_count">
+        <item quantity="one">%d файл</item>
+        <item quantity="few">%d файла</item>
+        <item quantity="many">%d файлов</item>
+        <item quantity="other">%d файла</item>
+    </plurals>
+    <string name="files_summary">%1$s · %2$s</string>
 </resources>

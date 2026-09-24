@@ -25,11 +25,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.daniloff.justdrop.R
 import com.daniloff.justdrop.model.SelectedFile
 import com.daniloff.justdrop.ui.theme.TextHint
+import com.daniloff.justdrop.utils.formatFileSize
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,6 +49,12 @@ fun SelectedFilesDialog(
             shape = RoundedCornerShape(30.dp),
             color = MaterialTheme.colorScheme.surface
         ) {
+            val totalSize = files.sumOf { it.size }
+            val filesCount = pluralStringResource(
+                R.plurals.files_count,
+                files.size,
+                files.size
+            )
             Column(
                 Modifier
                     .padding(top = 20.dp, bottom = 8.dp, start = 20.dp, end = 20.dp),
@@ -57,7 +65,10 @@ fun SelectedFilesDialog(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
+
                 Spacer(Modifier.height(15.dp))
+
+                // Вывод списка выбранных файлов
                 LazyColumn(
                     modifier = Modifier.heightIn(max = 300.dp)
                 ) {
@@ -87,10 +98,24 @@ fun SelectedFilesDialog(
                     )
                 }
 
+                // Разделитель
                 HorizontalDivider(
                     color = TextHint.copy(alpha = 0.3f)
                 )
 
+                Spacer(Modifier.height(8.dp))
+
+                // Общее количество файлов и размер
+                Text(
+                    text = stringResource(
+                        R.string.files_summary,
+                        filesCount,
+                        formatFileSize(totalSize)
+                    ),
+                    style = MaterialTheme.typography.labelMedium
+                )
+
+                // Кнопки отмены и отправки
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
