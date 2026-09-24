@@ -20,6 +20,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.math.pow
+import java.text.DecimalFormat
 
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -87,8 +89,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         for (uri in uris) {
             val cursor = contentResolver.query(
                 uri,
-                arrayOf(OpenableColumns.DISPLAY_NAME,
-                    OpenableColumns.SIZE),
+                arrayOf(
+                    OpenableColumns.DISPLAY_NAME,
+                    OpenableColumns.SIZE
+                ),
                 null,
                 null,
                 null

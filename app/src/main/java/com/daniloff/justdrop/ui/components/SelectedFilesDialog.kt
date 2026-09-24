@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -48,7 +49,7 @@ fun SelectedFilesDialog(
         ) {
             Column(
                 Modifier
-                    .padding(top = 20.dp, bottom = 15.dp, start = 20.dp, end = 20.dp),
+                    .padding(top = 20.dp, bottom = 8.dp, start = 20.dp, end = 20.dp),
             ) {
                 Text(
                     modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -56,7 +57,7 @@ fun SelectedFilesDialog(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
-
+                Spacer(Modifier.height(15.dp))
                 LazyColumn(
                     modifier = Modifier.heightIn(max = 300.dp)
                 ) {
@@ -81,7 +82,7 @@ fun SelectedFilesDialog(
                     Spacer(Modifier.width(4.dp))
                     Text(
                         text = stringResource(R.string.add),
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                 }

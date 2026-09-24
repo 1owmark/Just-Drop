@@ -2,8 +2,10 @@ package com.daniloff.justdrop.ui.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -15,6 +17,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.daniloff.justdrop.R
 import com.daniloff.justdrop.model.SelectedFile
+import com.daniloff.justdrop.utils.formatFileSize
 
 @Composable
 fun SelectedFileItem(
@@ -33,11 +36,11 @@ fun SelectedFileItem(
             overflow = TextOverflow.Ellipsis,
             style = MaterialTheme.typography.bodyMedium
         )
-
+        Spacer(Modifier.width(8.dp))
         Text(
-            text = file.size.toString(),
+            text = formatFileSize(file.size),
             overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.bodyMedium
+            style = MaterialTheme.typography.labelMedium
         )
 
         IconButton(
