@@ -4,4 +4,8 @@
     <string name="searching_devices">поиск устройств...</string>
     <string name="devices_not_found">Устройства не найдены</string>
     <string name="same_network_hint">Убедитесь, что устройства подключены к одной сети.</string>
+    <string name="files_to_send">Файлы для отправки</string>
+    <string name="add">Добавить</string>
+    <string name="send">Отправить</string>
+    <string name="cancel">Отмена</string>
 </resources>

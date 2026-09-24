@@ -2,6 +2,7 @@ package com.daniloff.justdrop.ui.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,14 +20,17 @@ import com.daniloff.justdrop.ui.theme.JustDropTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import com.daniloff.justdrop.model.Device
 
 @Composable
-fun DeviceCard(device: Device) {
+fun DeviceCard(device: Device, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 40.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(60.dp))
+            .clickable { onClick() }
             .background(
                 color = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(60.dp)

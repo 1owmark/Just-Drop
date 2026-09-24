@@ -1,10 +1,14 @@
 package com.daniloff.justdrop.ui
 
 import android.app.Application
+import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
 import com.daniloff.justdrop.model.Device
 import com.daniloff.justdrop.model.DiscoveredDevice
+import com.daniloff.justdrop.model.SelectedFile
 import com.daniloff.justdrop.network.client.JustDropHttpClient
 import com.daniloff.justdrop.network.discovery.DeviceDiscovery
 import com.daniloff.justdrop.network.server.HttpServer
@@ -28,6 +32,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _searchState = MutableStateFlow<DeviceSearchState>(DeviceSearchState.Searching)
     val searchState = _searchState.asStateFlow()
     private var searchTimerJob: Job? = null
+    private val _selectedFiles = MutableStateFlow<List<SelectedFile>>(emptyList())
+    val selectedFiles = _selectedFiles.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -74,5 +80,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
         }
+    }
+
+    fun onFilesSelected(device: Device, uris: List<Uri>) {
+        val contentResolver = application.contentResolver
+        for (uri in uris) {
+            val cursor = contentResolver.query(
+                uri,
+                arrayOf(OpenableColumns.DISPLAY_NAME,
+                    OpenableColumns.SIZE),
+                null,
+                null,
+                null
+            )
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val nameColumnIndex = it.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME)
+                    val sizeColumnIndex = it.getColumnIndexOrThrow(OpenableColumns.SIZE)
+                    val fileName = it.getString(nameColumnIndex)
+                    val fileSize = it.getLong(sizeColumnIndex)
+                    val mimeType = contentResolver.getType(uri)
+                    _selectedFiles.value += SelectedFile(uri, fileName, fileSize, mimeType)
+                }
+            }
+        }
+    }
+
+    fun deleteFile(file: SelectedFile) {
+        _selectedFiles.value -= file
+    }
+
+    fun clearSelectedFiles() {
+        _selectedFiles.value = emptyList()
     }
 }

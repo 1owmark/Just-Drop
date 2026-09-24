@@ -3,4 +3,8 @@
     <string name="searching_devices">searching for devices...</string>
     <string name="devices_not_found">No devices found</string>
     <string name="same_network_hint">Ensure that the devices are connected to the same network.</string>
+    <string name="files_to_send">Files to send</string>
+    <string name="add">Add</string>
+    <string name="send">Send</string>
+    <string name="cancel">Cancel</string>
 </resources>

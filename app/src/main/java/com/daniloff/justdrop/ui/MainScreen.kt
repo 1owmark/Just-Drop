@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -19,7 +18,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.daniloff.justdrop.R
 import com.daniloff.justdrop.ui.components.SearchIndicator
@@ -31,6 +29,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import com.daniloff.justdrop.ui.components.DeviceCard
 import com.daniloff.justdrop.ui.theme.TextHint
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.daniloff.justdrop.model.Device
+import com.daniloff.justdrop.ui.components.SelectedFilesDialog
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,6 +44,23 @@ fun MainScreen() {
     val viewModel: MainViewModel = viewModel()
     val devices by viewModel.devices.collectAsState()
     val searchState by viewModel.searchState.collectAsState()
+    var selectedDevice by remember {
+        mutableStateOf<Device?>(null)
+    }
+    val selectedFiles by viewModel.selectedFiles.collectAsState()
+    var showSelectedFilesDialog by remember {
+        mutableStateOf(false)
+    }
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris ->
+        val device = selectedDevice
+
+        if (device != null) {
+            viewModel.onFilesSelected(device, uris)
+            showSelectedFilesDialog = true
+        }
+    }
 
     Scaffold() { innerPadding: PaddingValues ->
         Column(
@@ -105,19 +127,30 @@ fun MainScreen() {
                 Spacer(Modifier.height(100.dp))
                 LazyColumn {
                     items(devices) { device ->
-                        DeviceCard(device)
+                        DeviceCard(device) {
+                            selectedDevice = device
+                            filePickerLauncher.launch(arrayOf("*/*"))
+                        }
                     }
                 }
             }
         }
     }
-}
+    if (showSelectedFilesDialog) {
+        SelectedFilesDialog(
+            files = selectedFiles,
+            onAddFiles = {
+                filePickerLauncher.launch(arrayOf("*/*"))
+            },
+            onSend = {
 
-@Composable
-@Preview(showBackground = true)
-fun MainScreenPreview() {
-    _root_ide_package_.com.daniloff.justdrop.ui.theme.JustDropTheme {
-        MainScreen()
+            },
+            onCancel = {
+                showSelectedFilesDialog = false
+                viewModel.clearSelectedFiles()
+            },
+            onRemoveFile = viewModel::deleteFile
+        )
     }
 }
 
