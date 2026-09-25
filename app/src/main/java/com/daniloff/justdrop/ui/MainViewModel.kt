@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import java.io.File
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.math.pow
 import java.text.DecimalFormat
@@ -31,7 +32,10 @@ import java.text.DecimalFormat
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val deviceDiscovery = DeviceDiscovery(application)
-    private val httpServer = HttpServer()
+    private val receivedFilesDir = File(application.filesDir, "received").apply {
+        mkdirs()
+    }
+    private val httpServer = HttpServer(receivedFilesDir)
     private val httpClient = JustDropHttpClient()
     private val deviceCache: MutableMap<DiscoveredDevice, Device> = mutableMapOf()
     private val _devices = MutableStateFlow<List<Device>>(emptyList())
@@ -91,7 +95,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun onFilesSelected(device: Device, uris: List<Uri>) {
+    fun onFilesSelected(uris: List<Uri>) {
         val contentResolver = application.contentResolver
         for (uri in uris) {
             val cursor = contentResolver.query(
@@ -121,6 +125,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             )
                         }
                     }
+                }
+            }
+        }
+    }
+
+    fun sendFiles(device: Device) {
+        viewModelScope.launch {
+            for (file in _selectedFiles.value) {
+                val stream = application.contentResolver.openInputStream(file.uri)
+
+                if (stream == null) {
+                    continue
+                }
+
+                stream.use {
+                    httpClient.uploadFile(
+                        device.networkInfo,
+                        file,
+                        it
+                    )
                 }
             }
         }

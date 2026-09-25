@@ -64,7 +64,7 @@ fun MainScreen() {
         val device = selectedDevice
 
         if (device != null) {
-            viewModel.onFilesSelected(device, uris)
+            viewModel.onFilesSelected(uris)
             showSelectedFilesDialog = true
         }
     }
@@ -168,7 +168,9 @@ fun MainScreen() {
                 filePickerLauncher.launch(arrayOf("*/*"))
             },
             onSend = {
-
+                selectedDevice?.let { device ->
+                    viewModel.sendFiles(device)
+                }
             },
             onCancel = {
                 showSelectedFilesDialog = false
