@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.daniloff.justdrop.R
 import com.daniloff.justdrop.model.SelectedFile
 import com.daniloff.justdrop.utils.formatFileSize
+import com.daniloff.justdrop.utils.truncateFileName
 
 @Composable
 fun SelectedFileItem(
@@ -33,7 +34,7 @@ fun SelectedFileItem(
             text = file.name,
             modifier = Modifier.weight(1f),
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+            overflow = TextOverflow.MiddleEllipsis,
             style = MaterialTheme.typography.bodyMedium
         )
         Spacer(Modifier.width(8.dp))

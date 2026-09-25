@@ -40,6 +40,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.daniloff.justdrop.model.Device
 import com.daniloff.justdrop.ui.components.SelectedFilesDialog
 import androidx.compose.ui.platform.LocalResources
+import com.daniloff.justdrop.utils.truncateFileName
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,7 +78,7 @@ fun MainScreen() {
                         context,
                         resources.getString(
                             R.string.file_has_already_been_added,
-                            event.fileName
+                            truncateFileName(event.fileName, 20)
                         ),
                         Toast.LENGTH_LONG
                     ).show()
