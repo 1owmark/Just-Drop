@@ -1,6 +1,7 @@
 package com.daniloff.justdrop.ui
 
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -31,11 +32,14 @@ import com.daniloff.justdrop.ui.components.DeviceCard
 import com.daniloff.justdrop.ui.theme.TextHint
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import com.daniloff.justdrop.model.Device
 import com.daniloff.justdrop.ui.components.SelectedFilesDialog
+import androidx.compose.ui.platform.LocalResources
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,6 +48,8 @@ fun MainScreen() {
     val viewModel: MainViewModel = viewModel()
     val devices by viewModel.devices.collectAsState()
     val searchState by viewModel.searchState.collectAsState()
+    val context = LocalContext.current
+    val resources = LocalResources.current
     var selectedDevice by remember {
         mutableStateOf<Device?>(null)
     }
@@ -59,6 +65,24 @@ fun MainScreen() {
         if (device != null) {
             viewModel.onFilesSelected(device, uris)
             showSelectedFilesDialog = true
+        }
+    }
+
+    // Если добавлены одинаковые файлы
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is UiEvent.FileAlreadyAdded -> {
+                    Toast.makeText(
+                        context,
+                        resources.getString(
+                            R.string.file_has_already_been_added,
+                            event.fileName
+                        ),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
         }
     }
 

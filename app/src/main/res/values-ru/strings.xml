@@ -15,4 +15,5 @@
         <item quantity="other">%d файла</item>
     </plurals>
     <string name="files_summary">%1$s · %2$s</string>
+    <string name="file_has_already_been_added">Файл %1$s уже добавлен.</string>
 </resources>

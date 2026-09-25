@@ -3,9 +3,12 @@ package com.daniloff.justdrop.ui
 import android.app.Application
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.widget.Toast
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
+import com.daniloff.justdrop.R
 import com.daniloff.justdrop.model.Device
 import com.daniloff.justdrop.model.DiscoveredDevice
 import com.daniloff.justdrop.model.SelectedFile
@@ -17,6 +20,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlin.time.Duration.Companion.milliseconds
@@ -36,6 +41,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var searchTimerJob: Job? = null
     private val _selectedFiles = MutableStateFlow<List<SelectedFile>>(emptyList())
     val selectedFiles = _selectedFiles.asStateFlow()
+    private val _events = MutableSharedFlow<UiEvent>()
+    val events = _events.asSharedFlow()
 
     init {
         viewModelScope.launch {
@@ -104,7 +111,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val fileName = it.getString(nameColumnIndex)
                     val fileSize = it.getLong(sizeColumnIndex)
                     val mimeType = contentResolver.getType(uri)
-                    _selectedFiles.value += SelectedFile(uri, fileName, fileSize, mimeType)
+                    val selectedFile = SelectedFile(uri, fileName, fileSize, mimeType)
+                    if (selectedFile !in _selectedFiles.value) {
+                        _selectedFiles.value += selectedFile
+                    } else {
+                        viewModelScope.launch {
+                            _events.emit(
+                                UiEvent.FileAlreadyAdded(fileName)
+                            )
+                        }
+                    }
                 }
             }
         }
