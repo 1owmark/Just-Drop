@@ -1,8 +1,10 @@
 package com.daniloff.justdrop.network.server
 
+import android.content.Context
 import android.os.Build
 import android.util.Log
 import com.daniloff.justdrop.model.DeviceInfo
+import com.daniloff.justdrop.utils.FileStorage
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
 import io.ktor.serialization.kotlinx.json.json
@@ -15,12 +17,12 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
-import io.ktor.utils.io.jvm.javaio.copyTo
-import java.io.File
+import io.ktor.utils.io.jvm.javaio.toInputStream
 
 class HttpServer(
-    private val receivedFilesDir: File
+    private val context: Context
 ) {
+    private val fileStorage = FileStorage(context)
     suspend fun start(): Int {
         val server = embeddedServer(CIO, 0, "0.0.0.0") {
 
@@ -44,12 +46,15 @@ class HttpServer(
                         when(part) {
                             is PartData.FileItem -> {
                                 val fileName = part.originalFileName ?: return@forEachPart
+                                val mimeType = part.contentType.toString()
 
-                                val file = File(receivedFilesDir, File(fileName).name)
-                                file.outputStream().use { output ->
-                                    part.provider().copyTo(output)
+                                part.provider().toInputStream().use { inputStream ->
+                                    fileStorage.save(
+                                        fileName,
+                                        mimeType,
+                                        inputStream
+                                    )
                                 }
-                                Log.d("UPLOAD", "File received: ${file.absolutePath}, size=${file.length()}")
                             }
                             else -> {}
                         }

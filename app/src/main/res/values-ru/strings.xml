@@ -16,4 +16,6 @@
     </plurals>
     <string name="files_summary">%1$s · %2$s</string>
     <string name="file_has_already_been_added">Файл %1$s уже добавлен.</string>
+    <string name="error_reading_file">Ошиба при чтении файла: %1$s</string>
+    <string name="error_sending_file">Не удалось отправить файл: %1$s</string>
 </resources>

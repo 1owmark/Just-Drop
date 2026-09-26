@@ -32,10 +32,7 @@ import java.text.DecimalFormat
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val deviceDiscovery = DeviceDiscovery(application)
-    private val receivedFilesDir = File(application.filesDir, "received").apply {
-        mkdirs()
-    }
-    private val httpServer = HttpServer(receivedFilesDir)
+    private val httpServer = HttpServer(application)
     private val httpClient = JustDropHttpClient()
     private val deviceCache: MutableMap<DiscoveredDevice, Device> = mutableMapOf()
     private val _devices = MutableStateFlow<List<Device>>(emptyList())
@@ -136,15 +133,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val stream = application.contentResolver.openInputStream(file.uri)
 
                 if (stream == null) {
+                    _events.emit(UiEvent.FileOpenError(file.name))
                     continue
                 }
 
-                stream.use {
-                    httpClient.uploadFile(
-                        device.networkInfo,
-                        file,
-                        it
-                    )
+                try {
+                    stream.use {
+                        httpClient.uploadFile(
+                            device.networkInfo,
+                            file,
+                            it
+                        )
+                    }
+                } catch (e: Exception) {
+                    _events.emit(UiEvent.FileUploadError(file.name))
                 }
             }
         }

@@ -83,6 +83,26 @@ fun MainScreen() {
                         Toast.LENGTH_LONG
                     ).show()
                 }
+                is UiEvent.FileOpenError -> {
+                    Toast.makeText(
+                        context,
+                        resources.getString(
+                            R.string.error_reading_file,
+                            truncateFileName(event.fileName)
+                        ),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                is UiEvent.FileUploadError -> {
+                    Toast.makeText(
+                        context,
+                        resources.getString(
+                            R.string.error_sending_file,
+                            truncateFileName(event.fileName)
+                        ),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             }
         }
     }
