@@ -1,6 +1,7 @@
 package com.daniloff.justdrop.ui
 
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
@@ -35,20 +36,28 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import com.daniloff.justdrop.model.Device
 import com.daniloff.justdrop.ui.components.SelectedFilesDialog
 import androidx.compose.ui.platform.LocalResources
+import com.daniloff.justdrop.model.TransferRequestState
+import com.daniloff.justdrop.ui.components.DeclinedDialog
+import com.daniloff.justdrop.ui.components.RequestDialog
 import com.daniloff.justdrop.utils.truncateFileName
+import kotlinx.coroutines.launch
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {
+    val scope = rememberCoroutineScope()
     val viewModel: MainViewModel = viewModel()
     val devices by viewModel.devices.collectAsState()
     val searchState by viewModel.searchState.collectAsState()
+    val transferRequest by viewModel.transferRequest.collectAsState()
+    val transferRequestState by viewModel.transferRequestState.collectAsState()
     val context = LocalContext.current
     val resources = LocalResources.current
     var selectedDevice by remember {
@@ -184,12 +193,17 @@ fun MainScreen() {
     if (showSelectedFilesDialog) {
         SelectedFilesDialog(
             files = selectedFiles,
+            isSendButtonEnabled = transferRequestState != TransferRequestState.WAITING,
             onAddFiles = {
                 filePickerLauncher.launch(arrayOf("*/*"))
             },
             onSend = {
                 selectedDevice?.let { device ->
-                    viewModel.sendFiles(device)
+                    scope.launch {
+                        val response = viewModel.requestTransfer(device)
+
+                        Log.d("HANDSHAKE", "response = $response")
+                    }
                 }
             },
             onCancel = {
@@ -198,6 +212,30 @@ fun MainScreen() {
             },
             onRemoveFile = viewModel::deleteFile
         )
+    }
+
+    LaunchedEffect(transferRequestState) {
+        if (transferRequestState == TransferRequestState.DECLINED) {
+            showSelectedFilesDialog = false
+        }
+    }
+
+    if (transferRequest != null) {
+        RequestDialog(
+            files = transferRequest!!.request.files,
+            onAccept = {
+                viewModel.acceptTransfer()
+            },
+            onCancel = {
+                viewModel.declineTransfer()
+            }
+        )
+    }
+
+    if (transferRequestState == TransferRequestState.DECLINED) {
+        DeclinedDialog {
+            viewModel.resetTransferRequestState()
+        }
     }
 }
 

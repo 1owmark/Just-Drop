@@ -127,12 +127,6 @@ class DeviceDiscovery(val context: Context) {
             }
 
             override fun onServiceLost() {
-                Log.d("Devices", "### CALLBACK onServiceLost")
-                Log.d(
-                    "Devices",
-                    "Callback потерял сервис: ${serviceInfo.serviceName}, ${getIpv4Address(serviceInfo)}"
-                )
-
                 val address = callbackAddresses[this] ?: return
 
                 _discoveredDevices.value =

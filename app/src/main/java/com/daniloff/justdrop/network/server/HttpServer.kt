@@ -4,6 +4,8 @@ import android.content.Context
 import android.os.Build
 import android.util.Log
 import com.daniloff.justdrop.model.DeviceInfo
+import com.daniloff.justdrop.model.TransferRequest
+import com.daniloff.justdrop.model.TransferResponse
 import com.daniloff.justdrop.utils.FileStorage
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
@@ -12,18 +14,22 @@ import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.request.receive
 import io.ktor.server.request.receiveMultipart
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.ktor.utils.io.jvm.javaio.toInputStream
+import kotlinx.coroutines.CompletableDeferred
 
 class HttpServer(
     private val context: Context
 ) {
     private val fileStorage = FileStorage(context)
-    suspend fun start(): Int {
+    suspend fun start(
+        onTransferRequest: (TransferRequest, CompletableDeferred<TransferResponse>) -> Unit
+    ): Int {
         val server = embeddedServer(CIO, 0, "0.0.0.0") {
 
             install(ContentNegotiation) {
@@ -34,11 +40,21 @@ class HttpServer(
                 get("/") {
                     call.respond("Hello from Just Drop")
                 }
+
                 get("/device") {
                     call.respond(
                         DeviceInfo(Build.MANUFACTURER, Build.MODEL)
                     )
                 }
+
+                post("/transfer/request") {
+                    val transferRequest = call.receive<TransferRequest>()
+                    val response = CompletableDeferred<TransferResponse>()
+                    onTransferRequest(transferRequest, response)
+                    val result = response.await()
+                    call.respond(result)
+                }
+
                 post("/upload") {
                     val multipartData = call.receiveMultipart()
 

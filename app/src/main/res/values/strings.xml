@@ -15,4 +15,8 @@
     <string name="file_has_already_been_added">The file %1$s has already been added.</string>
     <string name="error_reading_file">Error reading file: %1$s</string>
     <string name="error_sending_file">Error sending file: %1$s</string>
+    <string name="accept_files">Accept files?</string>
+    <string name="apply">Apply</string>
+    <string name="recipient_rejected_the_transfer">The recipient rejected the transfer</string>
+    <string name="close">Close</string>
 </resources>

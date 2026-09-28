@@ -3,15 +3,19 @@ package com.daniloff.justdrop.ui
 import android.app.Application
 import android.net.Uri
 import android.provider.OpenableColumns
-import android.widget.Toast
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
-import com.daniloff.justdrop.R
 import com.daniloff.justdrop.model.Device
 import com.daniloff.justdrop.model.DiscoveredDevice
+import com.daniloff.justdrop.model.PendingTransferRequest
 import com.daniloff.justdrop.model.SelectedFile
+import com.daniloff.justdrop.model.TransferFile
+import com.daniloff.justdrop.model.TransferRequest
+import com.daniloff.justdrop.model.TransferRequestFile
+import com.daniloff.justdrop.model.TransferRequestState
+import com.daniloff.justdrop.model.TransferResponse
+import com.daniloff.justdrop.model.TransferStatus
 import com.daniloff.justdrop.network.client.JustDropHttpClient
 import com.daniloff.justdrop.network.discovery.DeviceDiscovery
 import com.daniloff.justdrop.network.server.HttpServer
@@ -24,10 +28,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import java.io.File
+import kotlinx.coroutines.flow.update
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.math.pow
-import java.text.DecimalFormat
 
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -42,12 +44,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var searchTimerJob: Job? = null
     private val _selectedFiles = MutableStateFlow<List<SelectedFile>>(emptyList())
     val selectedFiles = _selectedFiles.asStateFlow()
+    private val _transferFiles = MutableStateFlow<List<TransferFile>>(emptyList())
+    val transferFile = _transferFiles.asStateFlow()
     private val _events = MutableSharedFlow<UiEvent>()
     val events = _events.asSharedFlow()
+    private val _transferRequest = MutableStateFlow<PendingTransferRequest?>(null)
+    val transferRequest = _transferRequest.asStateFlow()
+    private val _transferRequestState = MutableStateFlow(TransferRequestState.IDLE)
+    val transferRequestState = _transferRequestState.asStateFlow()
 
     init {
         viewModelScope.launch {
-            val port = httpServer.start()
+            val port = httpServer.start { request, response ->
+                _transferRequest.value = PendingTransferRequest(request, response)
+            }
             deviceDiscovery.start(port)
         }
 
@@ -127,27 +137,79 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun sendFiles(device: Device) {
-        viewModelScope.launch {
-            for (file in _selectedFiles.value) {
-                val stream = application.contentResolver.openInputStream(file.uri)
+    suspend fun requestTransfer(
+        device: Device
+    ): TransferResponse {
+        val transferRequestFileList = _selectedFiles.value
+            .map {
+                TransferRequestFile(it.name, it.size)
+            }
 
-                if (stream == null) {
-                    _events.emit(UiEvent.FileOpenError(file.name))
-                    continue
-                }
+        val transferRequest = TransferRequest(transferRequestFileList)
 
-                try {
-                    stream.use {
-                        httpClient.uploadFile(
-                            device.networkInfo,
-                            file,
-                            it
-                        )
-                    }
-                } catch (e: Exception) {
-                    _events.emit(UiEvent.FileUploadError(file.name))
-                }
+        _transferRequestState.value = TransferRequestState.WAITING
+
+        val response = httpClient.sendTransferRequest(
+            device.networkInfo,
+            transferRequest
+        )
+        when (response) {
+            TransferResponse.ACCEPTED -> _transferRequestState.value = TransferRequestState.ACCEPTED
+            TransferResponse.DECLINED -> _transferRequestState.value = TransferRequestState.DECLINED
+        }
+
+        return response
+    }
+
+    // Отправка файлов
+//    fun sendFiles(device: Device) {
+//        viewModelScope.launch {
+//            startTransfer()
+//
+//            for (file in _selectedFiles.value) {
+//                val stream = application.contentResolver.openInputStream(file.uri)
+//
+//                if (stream == null) {
+//                    _events.emit(UiEvent.FileOpenError(file.name))
+//                    updateTransferFile(file, TransferStatus.ERROR)
+//                    continue
+//                }
+//
+//                updateTransferFile(file, TransferStatus.SENDING)
+//
+//                try {
+//                    stream.use {
+//                        httpClient.uploadFile(
+//                            device.networkInfo,
+//                            file,
+//                            it
+//                        )
+//                        updateTransferFile(file, TransferStatus.SUCCESS)
+//                    }
+//                } catch (e: Exception) {
+//                    _events.emit(UiEvent.FileUploadError(file.name))
+//                    updateTransferFile(file, TransferStatus.ERROR)
+//                }
+//            }
+//       }
+//    }
+
+    // SelectedFile -> TransferFile
+    fun startTransfer() {
+        _transferFiles.value = _selectedFiles.value.map { file ->
+            TransferFile(file = file)
+        }
+    }
+
+    private fun updateTransferFile(
+        targetFile: SelectedFile,
+        status: TransferStatus
+    ) {
+        _transferFiles.update { files ->
+            files.map {
+                if (it.file == targetFile) {
+                    it.copy(status = status)
+                } else it
             }
         }
     }
@@ -158,5 +220,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearSelectedFiles() {
         _selectedFiles.value = emptyList()
+    }
+
+    fun acceptTransfer() {
+        _transferRequest.value?.response?.complete(
+            TransferResponse.ACCEPTED
+        )
+
+        _transferRequest.value = null
+    }
+
+    fun declineTransfer() {
+        _transferRequest.value?.response?.complete(
+            TransferResponse.DECLINED
+        )
+
+        _transferRequest.value = null
+    }
+
+    fun resetTransferRequestState() {
+        _transferRequestState.value = TransferRequestState.IDLE
     }
 }
