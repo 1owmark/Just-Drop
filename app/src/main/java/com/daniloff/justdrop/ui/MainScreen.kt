@@ -26,18 +26,21 @@ import com.daniloff.justdrop.ui.components.SearchIndicator
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import com.daniloff.justdrop.ui.components.DeviceCard
 import com.daniloff.justdrop.ui.theme.TextHint
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import com.daniloff.justdrop.model.Device
 import com.daniloff.justdrop.ui.components.SelectedFilesDialog
@@ -92,6 +95,7 @@ fun MainScreen() {
                         Toast.LENGTH_LONG
                     ).show()
                 }
+
                 is UiEvent.FileOpenError -> {
                     Toast.makeText(
                         context,
@@ -102,6 +106,7 @@ fun MainScreen() {
                         Toast.LENGTH_LONG
                     ).show()
                 }
+
                 is UiEvent.FileUploadError -> {
                     Toast.makeText(
                         context,
@@ -116,70 +121,23 @@ fun MainScreen() {
         }
     }
 
-    Scaffold() { innerPadding: PaddingValues ->
-        Column(
+    Scaffold { innerPadding ->
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-            horizontalAlignment = Alignment.CenterHorizontally
-        )
-        {
-            Row(
-                modifier = Modifier
-                    .padding(top = 80.dp)
-            ) {
-                Text(
-                    text = "Just ",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-
-                Text(
-                    text = "Drop",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-
+                .padding(innerPadding)
+        ) {
             if (devices.isEmpty()) {
-                when (searchState) {
-                    DeviceSearchState.Searching -> {
-                        Spacer(Modifier.height(250.dp))
-                        SearchIndicator()
-
-                        Spacer(Modifier.height(8.dp))
-
-                        Text(
-                            text = stringResource(R.string.searching_devices),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-
-                    DeviceSearchState.NotFound -> {
-                        Spacer(Modifier.height(160.dp))
-                        Image(
-                            painter = painterResource(R.drawable.wifi),
-                            contentDescription = null
-                        )
-                        Spacer(Modifier.height(40.dp))
-                        Text(
-                            text = stringResource(R.string.devices_not_found),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        Text(
-                            modifier = Modifier.padding(horizontal = 20.dp),
-                            text = stringResource(R.string.same_network_hint),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = TextHint,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
+                EmptyState(
+                    state = searchState,
+                    modifier = Modifier.align(Alignment.Center)
+                )
             } else {
-                Spacer(Modifier.height(100.dp))
-                LazyColumn {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = 72.dp), // Карточки не будут заползать на заголовок
+                    verticalArrangement = Arrangement.Center
+                ) {
                     items(devices) { device ->
                         DeviceCard(device) {
                             selectedDevice = device
@@ -188,8 +146,14 @@ fun MainScreen() {
                     }
                 }
             }
+            AppTitle(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 24.dp)
+            )
         }
     }
+
     if (showSelectedFilesDialog) {
         SelectedFilesDialog(
             files = selectedFiles,
@@ -239,3 +203,68 @@ fun MainScreen() {
     }
 }
 
+@Composable
+private fun AppTitle(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Just ",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Text(
+            text = "Drop",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+}
+
+@Composable
+private fun EmptyState(
+    state: DeviceSearchState,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier, // <- модификатор применяется к Column
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        when (state) {
+            DeviceSearchState.Searching -> {
+                SearchIndicator()
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.searching_devices),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
+
+            DeviceSearchState.NotFound -> {
+                Image(
+                    painter = painterResource(R.drawable.wifi),
+                    contentDescription = null
+                )
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    text = stringResource(R.string.devices_not_found),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    modifier = Modifier.padding(horizontal = 20.dp), // <- Modifier, а не modifier
+                    text = stringResource(R.string.same_network_hint),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = TextHint,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}

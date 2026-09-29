@@ -11,8 +11,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.daniloff.justdrop.model.TransferRequestFile
+import com.daniloff.justdrop.ui.theme.JustDropTheme
 import com.daniloff.justdrop.utils.formatFileSize
 
 @Composable
@@ -30,14 +32,16 @@ fun TransferRequestFileItem(
             modifier = Modifier.weight(1f),
             maxLines = 1,
             overflow = TextOverflow.MiddleEllipsis,
-            style = MaterialTheme.typography.bodyMedium
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground
         )
 
         Spacer(Modifier.width(8.dp))
 
         Text(
             text = formatFileSize(file.size),
-            style = MaterialTheme.typography.labelMedium
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onBackground
         )
     }
 }

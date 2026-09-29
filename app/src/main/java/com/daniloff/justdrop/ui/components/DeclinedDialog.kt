@@ -17,8 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.daniloff.justdrop.R
+import com.daniloff.justdrop.ui.theme.JustDropTheme
 import com.daniloff.justdrop.ui.theme.Success
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,27 +42,27 @@ fun DeclinedDialog(
                     horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    textAlign = TextAlign.Center,
                     text = stringResource(R.string.recipient_rejected_the_transfer),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
 
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(30.dp))
 
                 Image(
-                    painter = painterResource(R.drawable.sad),
+                    painter = painterResource(R.drawable.cross),
                     contentDescription = null
                 )
 
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(30.dp))
 
                 TextButton(
                     onClick = onClose
                 ) {
                     Text(
                         text = stringResource(R.string.close),
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                 }
