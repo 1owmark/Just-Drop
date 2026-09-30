@@ -7,6 +7,7 @@ import com.daniloff.justdrop.model.DeviceInfo
 import com.daniloff.justdrop.model.TransferRequest
 import com.daniloff.justdrop.model.TransferResponse
 import com.daniloff.justdrop.utils.FileStorage
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
 import io.ktor.serialization.kotlinx.json.json
@@ -22,6 +23,8 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.ktor.utils.io.jvm.javaio.toInputStream
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class HttpServer(
     private val context: Context
@@ -48,7 +51,9 @@ class HttpServer(
                 }
 
                 post("/transfer/request") {
+                    Log.d("HANDSHAKE", "request received")
                     val transferRequest = call.receive<TransferRequest>()
+                    Log.d("HANDSHAKE", "request parsed")
                     val response = CompletableDeferred<TransferResponse>()
                     onTransferRequest(transferRequest, response)
                     val result = response.await()
@@ -56,25 +61,54 @@ class HttpServer(
                 }
 
                 post("/upload") {
-                    val multipartData = call.receiveMultipart()
+                    Log.d("UPLOAD_SERVER", "upload request received")
 
-                    multipartData.forEachPart { part ->
-                        when(part) {
-                            is PartData.FileItem -> {
-                                val fileName = part.originalFileName ?: return@forEachPart
-                                val mimeType = part.contentType.toString()
+                    var saved = false
 
-                                part.provider().toInputStream().use { inputStream ->
-                                    fileStorage.save(
-                                        fileName,
-                                        mimeType,
-                                        inputStream
-                                    )
+                    call.receiveMultipart(
+                        formFieldLimit = 500 * 1024 * 1024
+                    ).forEachPart { part ->
+                        Log.d("UPLOAD_SERVER", "part received: ${part::class.simpleName}")
+
+                        if (part is PartData.FileItem) {
+                            val fileName = part.originalFileName
+
+                            Log.d("UPLOAD_SERVER", "file: $fileName")
+
+                            if (fileName != null) {
+                                val mimeType =
+                                    part.contentType?.toString() ?: "application/octet-stream"
+
+                                Log.d("UPLOAD_SERVER", "saving started")
+
+                                withContext(Dispatchers.IO) {
+                                    part.provider().toInputStream().use { inputStream ->
+                                        fileStorage.save(
+                                            fileName,
+                                            mimeType,
+                                            inputStream
+                                        )
+                                    }
                                 }
+
+                                Log.d("UPLOAD_SERVER", "saving finished")
+
+                                saved = true
                             }
-                            else -> {}
                         }
+
+                        part.release()
                     }
+
+                    Log.d("UPLOAD_SERVER", "upload request finished")
+
+                    call.respond(
+                        if (saved) {
+                            HttpStatusCode.OK
+                        } else {
+                            HttpStatusCode.BadRequest
+                        }
+                    )
                 }
             }
         }

@@ -78,7 +78,6 @@ class DeviceDiscovery(val context: Context) {
         }
 
         @RequiresExtension(extension = Build.VERSION_CODES.TIRAMISU, version = 7)
-        @RequiresApi(Build.VERSION_CODES.P)
         override fun onServiceFound(serviceInfo: NsdServiceInfo?) {
             if (serviceInfo == null) return
 
@@ -150,9 +149,23 @@ class DeviceDiscovery(val context: Context) {
                     return
                 }
 
-                if (_discoveredDevices.value.any { device ->
-                        device.host == address
-                    }) {
+                val existingDevice = _discoveredDevices.value.find {
+                    it.host == address
+                }
+
+                if (existingDevice != null) {
+                    if (existingDevice.port == serviceInfo.port) {
+                        return
+                    }
+
+                    _discoveredDevices.value = _discoveredDevices.value.map {
+                        if (it.host == address) {
+                            it.copy(port = serviceInfo.port)
+                        } else {
+                            it
+                        }
+                    }
+
                     return
                 }
 

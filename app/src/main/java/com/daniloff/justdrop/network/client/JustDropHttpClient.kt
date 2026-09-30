@@ -1,6 +1,6 @@
 package com.daniloff.justdrop.network.client
 
-import android.content.ContentResolver
+import android.util.Log
 import com.daniloff.justdrop.model.DeviceInfo
 import com.daniloff.justdrop.model.DiscoveredDevice
 import com.daniloff.justdrop.model.SelectedFile
@@ -11,6 +11,8 @@ import io.ktor.client.engine.android.Android
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.client.call.body
+import io.ktor.client.plugins.expectSuccess
+import io.ktor.client.plugins.onUpload
 import io.ktor.client.request.forms.InputProvider
 import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.forms.formData
@@ -35,6 +37,7 @@ class JustDropHttpClient {
 
     suspend fun getDevice(device: DiscoveredDevice): DeviceInfo {
         val url = "http://${device.host}:${device.port}/device"
+        Log.d("HTTP_CLIENT", "GET /device -> $url")
 
         return client.get(url).body()
     }
@@ -45,6 +48,7 @@ class JustDropHttpClient {
     ): TransferResponse {
         val url = "http://${device.host}:${device.port}/transfer/request"
 
+        Log.d("HTTP_CLIENT", "POST /transfer/request -> $url")
         return client.post(url) {
             contentType(ContentType.Application.Json)
             setBody(request)
@@ -54,10 +58,15 @@ class JustDropHttpClient {
     suspend fun uploadFile(
         device: DiscoveredDevice,
         file: SelectedFile,
-        stream: InputStream
+        stream: InputStream,
+        onProgress: (Long, Long?) -> Unit
     ) {
         val url = "http://${device.host}:${device.port}/upload"
+        Log.d("HTTP_CLIENT", "POST /upload -> $url")
+        Log.d("UPLOAD", "uploadFile started")
         client.post(url) {
+            expectSuccess = true
+
             setBody(
                 MultiPartFormDataContent(
                     formData {
@@ -80,6 +89,10 @@ class JustDropHttpClient {
                     }
                 )
             )
+
+            onUpload { bytesSentTotal, contentLength ->
+                onProgress(bytesSentTotal, contentLength)
+            }
         }
     }
 }

@@ -19,4 +19,8 @@
     <string name="apply">Apply</string>
     <string name="recipient_rejected_the_transfer">The recipient rejected the transfer</string>
     <string name="close">Close</string>
+    <string name="expectation">Expectation...</string>
+    <string name="done">Done</string>
+    <string name="error">Error</string>
+    <string name="sending_files">Sending files</string>
 </resources>

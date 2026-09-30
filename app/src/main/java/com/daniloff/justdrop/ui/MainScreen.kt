@@ -48,6 +48,7 @@ import androidx.compose.ui.platform.LocalResources
 import com.daniloff.justdrop.model.TransferRequestState
 import com.daniloff.justdrop.ui.components.DeclinedDialog
 import com.daniloff.justdrop.ui.components.RequestDialog
+import com.daniloff.justdrop.ui.components.TransferDialog
 import com.daniloff.justdrop.utils.truncateFileName
 import kotlinx.coroutines.launch
 
@@ -61,6 +62,7 @@ fun MainScreen() {
     val searchState by viewModel.searchState.collectAsState()
     val transferRequest by viewModel.transferRequest.collectAsState()
     val transferRequestState by viewModel.transferRequestState.collectAsState()
+    val transferFiles by viewModel.transferFiles.collectAsState()
     val context = LocalContext.current
     val resources = LocalResources.current
     var selectedDevice by remember {
@@ -80,8 +82,11 @@ fun MainScreen() {
             showSelectedFilesDialog = true
         }
     }
+    var showTransferDialog by remember {
+        mutableStateOf(false)
+    }
 
-    // Если добавлены одинаковые файлы
+    // Обработка UI событий
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
@@ -121,6 +126,36 @@ fun MainScreen() {
         }
     }
 
+    LaunchedEffect(transferRequestState) {
+        when (transferRequestState) {
+            TransferRequestState.ACCEPTED -> {
+                showSelectedFilesDialog = false
+                showTransferDialog = true
+
+                selectedDevice?.let { device ->
+                    viewModel.sendFiles(device)
+                }
+            }
+
+            TransferRequestState.DECLINED -> {
+                showSelectedFilesDialog = false
+                viewModel.clearSelectedFiles()
+            }
+
+            else -> Unit
+        }
+    }
+
+    if (showTransferDialog) {
+        TransferDialog(
+            titleRes = R.string.sending_files,
+            files = transferFiles,
+            onCancel = {
+                showTransferDialog = false
+            }
+        )
+    }
+
     Scaffold { innerPadding ->
         Box(
             modifier = Modifier
@@ -135,7 +170,7 @@ fun MainScreen() {
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 72.dp), // Карточки не будут заползать на заголовок
+                    contentPadding = PaddingValues(vertical = 72.dp),
                     verticalArrangement = Arrangement.Center
                 ) {
                     items(devices) { device ->
@@ -178,12 +213,6 @@ fun MainScreen() {
         )
     }
 
-    LaunchedEffect(transferRequestState) {
-        if (transferRequestState == TransferRequestState.DECLINED) {
-            showSelectedFilesDialog = false
-        }
-    }
-
     if (transferRequest != null) {
         RequestDialog(
             files = transferRequest!!.request.files,
@@ -192,6 +221,7 @@ fun MainScreen() {
             },
             onCancel = {
                 viewModel.declineTransfer()
+                viewModel.clearSelectedFiles()
             }
         )
     }
@@ -232,7 +262,7 @@ private fun EmptyState(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier, // <- модификатор применяется к Column
+        modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         when (state) {
@@ -258,7 +288,7 @@ private fun EmptyState(
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    modifier = Modifier.padding(horizontal = 20.dp), // <- Modifier, а не modifier
+                    modifier = Modifier.padding(horizontal = 20.dp),
                     text = stringResource(R.string.same_network_hint),
                     style = MaterialTheme.typography.labelMedium,
                     color = TextHint,

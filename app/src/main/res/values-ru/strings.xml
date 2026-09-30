@@ -22,4 +22,8 @@
     <string name="apply">Принять</string>
     <string name="recipient_rejected_the_transfer">Получатель отклонил передачу</string>
     <string name="close">Закрыть</string>
+    <string name="expectation">Ожидание...</string>
+    <string name="done">Готово</string>
+    <string name="error">Ошибка</string>
+    <string name="sending_files">Отправка файлов</string>
 </resources>
