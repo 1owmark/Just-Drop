@@ -20,6 +20,7 @@ import com.daniloff.justdrop.model.TransferStatus
 import com.daniloff.justdrop.network.client.JustDropHttpClient
 import com.daniloff.justdrop.network.discovery.DeviceDiscovery
 import com.daniloff.justdrop.network.server.HttpServer
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,6 +54,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val transferRequest = _transferRequest.asStateFlow()
     private val _transferRequestState = MutableStateFlow(TransferRequestState.IDLE)
     val transferRequestState = _transferRequestState.asStateFlow()
+    private var transferJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -179,7 +181,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Отправка файлов
     fun sendFiles(device: Device) {
         val files = _selectedFiles.value
-        viewModelScope.launch {
+        transferJob = viewModelScope.launch {
             startTransfer()
 
             for (file in files) {
@@ -200,7 +202,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             device = device.networkInfo,
                             file = file,
                             stream = it,
-                            onProgress = { bytesSent, totalBytes ->
+                            onProgress = { bytesSent, _ ->
                                 val progress = (bytesSent.toFloat() / file.size).coerceIn(0f, 1f)
 
                                 if (bytesSent % (10 * 1024 * 1024) < 4096) {
@@ -220,7 +222,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         Log.d("UPLOAD", "uploadFile call finished")
                         updateTransferFile(file, TransferStatus.SUCCESS)
                     }
-                } catch (e: Exception) {
+                }
+                catch (e: CancellationException) {
+                    throw e
+                }
+                catch (e: Exception) {
                     _events.emit(UiEvent.FileUploadError(file.name))
                     updateTransferFile(file, TransferStatus.ERROR)
                 }
@@ -280,4 +286,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun resetTransferRequestState() {
         _transferRequestState.value = TransferRequestState.IDLE
     }
+
+    fun cancelTransfer() = transferJob?.cancel()
 }

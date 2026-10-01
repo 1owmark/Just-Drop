@@ -151,7 +151,13 @@ fun MainScreen() {
             titleRes = R.string.sending_files,
             files = transferFiles,
             onCancel = {
+                viewModel.cancelTransfer()
                 showTransferDialog = false
+                Toast.makeText(
+                    context,
+                    resources.getString(R.string.file_transfer_cancelled),
+                    Toast.LENGTH_LONG
+                ).show()
             }
         )
     }

@@ -3,7 +3,7 @@
     <string name="app_name" translatable="false">Just Drop</string>
     <string name="searching_devices">поиск устройств...</string>
     <string name="devices_not_found">Устройства не найдены</string>
-    <string name="same_network_hint">Убедитесь, что устройства подключены к одной сети.</string>
+    <string name="same_network_hint">Убедитесь, что устройства подключены к одной сети</string>
     <string name="files_to_send">Файлы для отправки</string>
     <string name="add">Добавить</string>
     <string name="send">Отправить</string>
@@ -15,7 +15,7 @@
         <item quantity="other">%d файла</item>
     </plurals>
     <string name="files_summary">%1$s · %2$s</string>
-    <string name="file_has_already_been_added">Файл %1$s уже добавлен.</string>
+    <string name="file_has_already_been_added">Файл %1$s уже добавлен</string>
     <string name="error_reading_file">Ошиба при чтении файла: %1$s</string>
     <string name="error_sending_file">Не удалось отправить файл: %1$s</string>
     <string name="accept_files">Принять файлы?</string>
@@ -26,4 +26,5 @@
     <string name="done">Готово</string>
     <string name="error">Ошибка</string>
     <string name="sending_files">Отправка файлов</string>
+    <string name="file_transfer_cancelled">Передача файлов отклонена</string>
 </resources>

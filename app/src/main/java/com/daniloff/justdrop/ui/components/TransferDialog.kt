@@ -21,7 +21,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.daniloff.justdrop.R
 import com.daniloff.justdrop.model.TransferFile
-import com.daniloff.justdrop.model.TransferRequestFile
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,6 +39,7 @@ fun TransferDialog(
             Column(
                 Modifier
                     .padding(top = 20.dp, bottom = 8.dp, start = 20.dp, end = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     modifier = Modifier.align(Alignment.CenterHorizontally),

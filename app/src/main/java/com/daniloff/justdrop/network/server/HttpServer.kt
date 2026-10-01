@@ -30,6 +30,7 @@ class HttpServer(
     private val context: Context
 ) {
     private val fileStorage = FileStorage(context)
+    private val maxFileSize = 512L * 1024 * 1024 * 1024
     suspend fun start(
         onTransferRequest: (TransferRequest, CompletableDeferred<TransferResponse>) -> Unit
     ): Int {
@@ -66,7 +67,7 @@ class HttpServer(
                     var saved = false
 
                     call.receiveMultipart(
-                        formFieldLimit = 500 * 1024 * 1024
+                        maxFileSize
                     ).forEachPart { part ->
                         Log.d("UPLOAD_SERVER", "part received: ${part::class.simpleName}")
 
