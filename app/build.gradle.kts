@@ -60,4 +60,5 @@ dependencies {
     implementation(libs.ktor.client.android)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.datastore.preferences)
 }

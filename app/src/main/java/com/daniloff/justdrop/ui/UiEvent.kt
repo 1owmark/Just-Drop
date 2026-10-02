@@ -4,4 +4,6 @@ sealed interface UiEvent {
     data class FileAlreadyAdded(val fileName: String) : UiEvent
     data class FileOpenError(val fileName: String) : UiEvent
     data class FileUploadError(val fileName: String) : UiEvent
+    data object DeviceUnavailable: UiEvent
+    data object TransferRequestError: UiEvent
 }

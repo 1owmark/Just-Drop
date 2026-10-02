@@ -24,4 +24,5 @@
     <string name="error">Error</string>
     <string name="sending_files">Sending files</string>
     <string name="file_transfer_cancelled">File transfer cancelled</string>
+    <string name="device_unavailable">Device unavailable</string>
 </resources>

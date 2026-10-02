@@ -108,7 +108,7 @@ fun MainScreen() {
                             R.string.error_reading_file,
                             truncateFileName(event.fileName)
                         ),
-                        Toast.LENGTH_LONG
+                        Toast.LENGTH_SHORT
                     ).show()
                 }
 
@@ -119,6 +119,21 @@ fun MainScreen() {
                             R.string.error_sending_file,
                             truncateFileName(event.fileName)
                         ),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+
+                is UiEvent.DeviceUnavailable -> {
+                    Toast.makeText(
+                        context,
+                        resources.getString(R.string.device_unavailable),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                is UiEvent.TransferRequestError -> {
+                    Toast.makeText(
+                        context,
+                        resources.getString(R.string.device_unavailable),
                         Toast.LENGTH_LONG
                     ).show()
                 }
@@ -133,7 +148,7 @@ fun MainScreen() {
                 showTransferDialog = true
 
                 selectedDevice?.let { device ->
-                    viewModel.sendFiles(device)
+                    viewModel.sendFiles(device.info.deviceId)
                 }
             }
 
@@ -205,7 +220,7 @@ fun MainScreen() {
             onSend = {
                 selectedDevice?.let { device ->
                     scope.launch {
-                        val response = viewModel.requestTransfer(device)
+                        val response = viewModel.requestTransfer(device.info.deviceId)
 
                         Log.d("HANDSHAKE", "response = $response")
                     }

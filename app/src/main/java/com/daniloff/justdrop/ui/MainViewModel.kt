@@ -4,10 +4,13 @@ import android.app.Application
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
+import com.daniloff.data.DeviceIdProvider
 import com.daniloff.justdrop.model.Device
+import com.daniloff.justdrop.model.DeviceInfo
 import com.daniloff.justdrop.model.DiscoveredDevice
 import com.daniloff.justdrop.model.PendingTransferRequest
 import com.daniloff.justdrop.model.SelectedFile
@@ -36,9 +39,10 @@ import kotlin.time.Duration.Companion.milliseconds
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val deviceDiscovery = DeviceDiscovery(application)
-    private val httpServer = HttpServer(application)
+    private val deviceIdProvider = DeviceIdProvider(application)
+    private val httpServer = HttpServer(application, deviceIdProvider)
     private val httpClient = JustDropHttpClient()
-    private val deviceCache: MutableMap<DiscoveredDevice, Device> = mutableMapOf()
+    private val deviceCache: MutableMap<String, Device> = mutableMapOf()
     private val _devices = MutableStateFlow<List<Device>>(emptyList())
     val devices = _devices.asStateFlow()
     private val _searchState = MutableStateFlow<DeviceSearchState>(DeviceSearchState.Searching)
@@ -67,25 +71,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             deviceDiscovery.discoveredDevices.collect { devices ->
+                Log.d("Discovery", "discoveredDevices = $devices")
+                val currentDeviceIds = mutableSetOf<String>()
                 for (device in devices) {
-                    if (device in deviceCache) {
-                        continue
-                    } else {
-                        try {
-                            val deviceInfo = httpClient.getDevice(device)
-                            val foundDevice = Device(device, deviceInfo)
-                            _devices.value += foundDevice
-                            deviceCache[device] = foundDevice
-                        } catch (e: Exception) {
-                            Log.e(
-                                "Discovery",
-                                "Failed to connect to ${device.host}:${device.port}",
-                                e
-                            )
-                        }
+                    try {
+                        val deviceInfo = httpClient.getDevice(device)
+                        currentDeviceIds += deviceInfo.deviceId
+                        val foundDevice = Device(device, deviceInfo)
+                        deviceCache[deviceInfo.deviceId] = foundDevice
+                    } catch (e: Exception) {
+                        Log.e(
+                            "Discovery",
+                            "Failed to connect to ${device.host}:${device.port}",
+                            e
+                        )
                     }
                 }
-                val devicesToRemove = deviceCache.keys.filterNot { it in devices }
+                val devicesToRemove = deviceCache.keys.filterNot { it in currentDeviceIds }
 
                 for (device in devicesToRemove) {
                     deviceCache.remove(device)
@@ -150,8 +152,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     suspend fun requestTransfer(
-        device: Device
-    ): TransferResponse {
+        deviceId: String
+    ): TransferResponse? {
+        val device = deviceCache[deviceId]
+
+        if (device == null) {
+            _events.emit(UiEvent.DeviceUnavailable)
+            return null
+        }
+
         val transferRequestFileList = _selectedFiles.value
             .map {
                 TransferRequestFile(it.name, it.size)
@@ -161,31 +170,38 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         _transferRequestState.value = TransferRequestState.WAITING
 
-        Log.d("HANDSHAKE", "sending request")
+        try {
+            val response = httpClient.sendTransferRequest(
+                device.networkInfo,
+                transferRequest
+            )
 
-        val response = httpClient.sendTransferRequest(
-            device.networkInfo,
-            transferRequest
-        )
+            when (response) {
+                TransferResponse.ACCEPTED -> _transferRequestState.value = TransferRequestState.ACCEPTED
+                TransferResponse.DECLINED -> _transferRequestState.value = TransferRequestState.DECLINED
+            }
 
-        Log.d("HANDSHAKE", "response = $response")
-
-        when (response) {
-            TransferResponse.ACCEPTED -> _transferRequestState.value = TransferRequestState.ACCEPTED
-            TransferResponse.DECLINED -> _transferRequestState.value = TransferRequestState.DECLINED
+            return response
+        } catch(e: Exception) {
+            _events.emit(UiEvent.TransferRequestError)
+            return null
         }
-
-        return response
     }
 
     // Отправка файлов
-    fun sendFiles(device: Device) {
+    fun sendFiles(deviceId: String) {
         val files = _selectedFiles.value
         transferJob = viewModelScope.launch {
             startTransfer()
 
             for (file in files) {
                 val stream = application.contentResolver.openInputStream(file.uri)
+                val device = deviceCache[deviceId]
+
+                if (device == null) {
+                    updateTransferFile(file, TransferStatus.ERROR)
+                    continue
+                }
 
                 if (stream == null) {
                     _events.emit(UiEvent.FileOpenError(file.name))
@@ -222,11 +238,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         Log.d("UPLOAD", "uploadFile call finished")
                         updateTransferFile(file, TransferStatus.SUCCESS)
                     }
-                }
-                catch (e: CancellationException) {
+                } catch (e: CancellationException) {
                     throw e
-                }
-                catch (e: Exception) {
+                } catch (e: Exception) {
                     _events.emit(UiEvent.FileUploadError(file.name))
                     updateTransferFile(file, TransferStatus.ERROR)
                 }

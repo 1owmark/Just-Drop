@@ -11,6 +11,7 @@ import io.ktor.client.engine.android.Android
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.client.call.body
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.expectSuccess
 import io.ktor.client.plugins.onUpload
 import io.ktor.client.request.forms.InputProvider
@@ -24,8 +25,19 @@ import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.utils.io.streams.asInput
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import kotlinx.io.buffered
+import java.io.IOException
 import java.io.InputStream
+import kotlin.time.Duration.Companion.milliseconds
+import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicBoolean
 
 
 class JustDropHttpClient {
@@ -33,11 +45,15 @@ class JustDropHttpClient {
         install(ContentNegotiation) {
             json()
         }
+
+        install(HttpTimeout) {
+            connectTimeoutMillis = 5_000
+            socketTimeoutMillis = 10_000
+        }
     }
 
     suspend fun getDevice(device: DiscoveredDevice): DeviceInfo {
         val url = "http://${device.host}:${device.port}/device"
-        Log.d("HTTP_CLIENT", "GET /device -> $url")
 
         return client.get(url).body()
     }
@@ -62,36 +78,75 @@ class JustDropHttpClient {
         onProgress: (Long, Long?) -> Unit
     ) {
         val url = "http://${device.host}:${device.port}/upload"
+
         Log.d("HTTP_CLIENT", "POST /upload -> $url")
         Log.d("UPLOAD", "uploadFile started")
-        client.post(url) {
-            expectSuccess = true
 
-            setBody(
-                MultiPartFormDataContent(
-                    formData {
-                        append(
-                            key = "file",
-                            value = InputProvider {
-                                stream.asInput().buffered()
-                            },
-                            headers = Headers.build {
+        supervisorScope {
+            val lastProgressTime = AtomicLong(System.currentTimeMillis())
+            val stalled = AtomicBoolean(false)
+
+            val uploadJob = async {
+                client.post(url) {
+                    expectSuccess = true
+
+                    setBody(
+                        MultiPartFormDataContent(
+                            formData {
                                 append(
-                                    HttpHeaders.ContentType,
-                                    file.mimeType ?: "application/octet-stream"
-                                )
-                                append(
-                                    HttpHeaders.ContentDisposition,
-                                    "form-data; name=\"file\"; filename=\"${file.name}\""
+                                    key = "file",
+                                    value = InputProvider {
+                                        stream.asInput().buffered()
+                                    },
+                                    headers = Headers.build {
+                                        append(
+                                            HttpHeaders.ContentType,
+                                            file.mimeType
+                                                ?: "application/octet-stream"
+                                        )
+                                        append(
+                                            HttpHeaders.ContentDisposition,
+                                            "form-data; name=\"file\"; filename=\"${file.name}\""
+                                        )
+                                    }
                                 )
                             }
                         )
-                    }
-                )
-            )
+                    )
 
-            onUpload { bytesSentTotal, contentLength ->
-                onProgress(bytesSentTotal, contentLength)
+                    onUpload { bytesSentTotal, contentLength ->
+                        lastProgressTime.set(System.currentTimeMillis())
+                        onProgress(
+                            bytesSentTotal, contentLength
+                        )
+                    }
+                }
+            }
+
+            val watchdogJob = launch {
+                while (isActive) {
+                    delay(1_000.milliseconds)
+
+                    val elapsed = System.currentTimeMillis() - lastProgressTime.get()
+
+                    if (elapsed >= 10_000) {
+                        stalled.set(true)
+                        uploadJob.cancel()
+                        break
+                    }
+                }
+            }
+
+            try {
+                uploadJob.await()
+            } catch (e: CancellationException) {
+                if (stalled.get() && currentCoroutineContext().isActive) {
+                    throw IOException("Upload stalled", e)
+                }
+
+                throw e
+            } finally {
+                watchdogJob.cancel()
             }
         }
     }

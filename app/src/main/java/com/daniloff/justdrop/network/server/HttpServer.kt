@@ -3,6 +3,7 @@ package com.daniloff.justdrop.network.server
 import android.content.Context
 import android.os.Build
 import android.util.Log
+import com.daniloff.data.DeviceIdProvider
 import com.daniloff.justdrop.model.DeviceInfo
 import com.daniloff.justdrop.model.TransferRequest
 import com.daniloff.justdrop.model.TransferResponse
@@ -27,7 +28,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class HttpServer(
-    private val context: Context
+    private val context: Context,
+    private val deviceIdProvider: DeviceIdProvider
 ) {
     private val fileStorage = FileStorage(context)
     private val maxFileSize = 512L * 1024 * 1024 * 1024
@@ -46,8 +48,13 @@ class HttpServer(
                 }
 
                 get("/device") {
+                    val deviceId = deviceIdProvider.getDeviceId()
+                    Log.d("DEVICE_ID", "deviceId = $deviceId")
                     call.respond(
-                        DeviceInfo(Build.MANUFACTURER, Build.MODEL)
+                        DeviceInfo(
+                            deviceId,
+                            Build.MANUFACTURER,
+                            Build.MODEL)
                     )
                 }
 
