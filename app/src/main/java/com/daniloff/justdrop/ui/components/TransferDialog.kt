@@ -25,9 +25,9 @@ import com.daniloff.justdrop.model.TransferFile
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransferDialog(
-    titleRes: Int,
     files: List<TransferFile>,
-    onCancel: () -> Unit
+    isCompleted: Boolean,
+    onAction: () -> Unit
 ) {
     BasicAlertDialog(
         onDismissRequest = {}
@@ -43,7 +43,11 @@ fun TransferDialog(
             ) {
                 Text(
                     modifier = Modifier.align(Alignment.CenterHorizontally),
-                    text = stringResource(titleRes),
+                    text = if (isCompleted) {
+                        stringResource(R.string.transfer_complete)
+                    } else {
+                        stringResource(R.string.sending_files)
+                    },
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
@@ -59,10 +63,14 @@ fun TransferDialog(
                 }
                 Spacer(Modifier.height(30.dp))
                 TextButton(
-                    onClick = onCancel
+                    onClick = onAction
                 ) {
                     Text(
-                        text = stringResource(R.string.cancel),
+                        text = if (isCompleted) {
+                            stringResource(R.string.close)
+                        } else {
+                            stringResource(R.string.cancel)
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error
                     )

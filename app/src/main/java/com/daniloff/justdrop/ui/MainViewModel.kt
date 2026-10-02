@@ -177,12 +177,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             )
 
             when (response) {
-                TransferResponse.ACCEPTED -> _transferRequestState.value = TransferRequestState.ACCEPTED
-                TransferResponse.DECLINED -> _transferRequestState.value = TransferRequestState.DECLINED
+                TransferResponse.ACCEPTED -> _transferRequestState.value =
+                    TransferRequestState.ACCEPTED
+
+                TransferResponse.DECLINED -> _transferRequestState.value =
+                    TransferRequestState.DECLINED
             }
 
             return response
-        } catch(e: Exception) {
+        } catch (e: Exception) {
             _events.emit(UiEvent.TransferRequestError)
             return null
         }
@@ -301,5 +304,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _transferRequestState.value = TransferRequestState.IDLE
     }
 
-    fun cancelTransfer() = transferJob?.cancel()
+    fun cancelTransfer() {
+        transferJob?.cancel()
+    }
 }

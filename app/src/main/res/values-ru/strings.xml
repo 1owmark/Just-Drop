@@ -22,10 +22,11 @@
     <string name="apply">Принять</string>
     <string name="recipient_rejected_the_transfer">Получатель отклонил передачу</string>
     <string name="close">Закрыть</string>
-    <string name="expectation">Ожидание...</string>
-    <string name="done">Готово</string>
+    <string name="expectation">Ожидание…</string>
+    <string name="successfully">Успешно</string>
     <string name="error">Ошибка</string>
     <string name="sending_files">Отправка файлов</string>
     <string name="file_transfer_cancelled">Передача файлов отклонена</string>
     <string name="device_unavailable">Устройство недоступно</string>
+    <string name="transfer_complete">Отправка завершена</string>
 </resources>

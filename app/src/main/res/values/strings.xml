@@ -19,10 +19,11 @@
     <string name="apply">Apply</string>
     <string name="recipient_rejected_the_transfer">The recipient rejected the transfer</string>
     <string name="close">Close</string>
-    <string name="expectation">Expectation...</string>
-    <string name="done">Done</string>
+    <string name="expectation">Expectation…</string>
+    <string name="successfully">Successfully</string>
     <string name="error">Error</string>
     <string name="sending_files">Sending files</string>
     <string name="file_transfer_cancelled">File transfer cancelled</string>
     <string name="device_unavailable">Device unavailable</string>
+    <string name="transfer_complete">Transfer complete</string>
 </resources>

@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.daniloff.justdrop.R
 import com.daniloff.justdrop.model.TransferFile
 import com.daniloff.justdrop.model.TransferStatus
+import com.daniloff.justdrop.ui.theme.Success
 import com.daniloff.justdrop.utils.formatFileSize
 
 @Composable
@@ -85,7 +86,7 @@ fun TransferFileItem(
 private fun WaitingTransferState() {
     Text(
         text = stringResource(R.string.expectation),
-        style = MaterialTheme.typography.labelMedium,
+        style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onBackground
     )
 }
@@ -105,7 +106,7 @@ private fun SendingTransferState(
 
         Text(
             text = "${formatFileSize(speed)}/с",
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onBackground
         )
     }
@@ -114,9 +115,9 @@ private fun SendingTransferState(
 @Composable
 private fun SuccessTransferState() {
     Text(
-        text = stringResource(R.string.done),
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.primary
+        text = stringResource(R.string.successfully),
+        style = MaterialTheme.typography.labelSmall,
+        color = Success
     )
 }
 
@@ -124,7 +125,7 @@ private fun SuccessTransferState() {
 private fun ErrorTransferState() {
     Text(
         text = stringResource(R.string.error),
-        style = MaterialTheme.typography.labelMedium,
+        style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.error
     )
 }

@@ -46,6 +46,7 @@ import com.daniloff.justdrop.model.Device
 import com.daniloff.justdrop.ui.components.SelectedFilesDialog
 import androidx.compose.ui.platform.LocalResources
 import com.daniloff.justdrop.model.TransferRequestState
+import com.daniloff.justdrop.model.TransferStatus
 import com.daniloff.justdrop.ui.components.DeclinedDialog
 import com.daniloff.justdrop.ui.components.RequestDialog
 import com.daniloff.justdrop.ui.components.TransferDialog
@@ -85,6 +86,10 @@ fun MainScreen() {
     var showTransferDialog by remember {
         mutableStateOf(false)
     }
+    val isTransferCompleted = transferFiles.isNotEmpty() &&
+            transferFiles.all {
+                it.status == TransferStatus.SUCCESS || it.status == TransferStatus.ERROR
+            }
 
     // Обработка UI событий
     LaunchedEffect(Unit) {
@@ -130,6 +135,7 @@ fun MainScreen() {
                         Toast.LENGTH_LONG
                     ).show()
                 }
+
                 is UiEvent.TransferRequestError -> {
                     Toast.makeText(
                         context,
@@ -163,16 +169,20 @@ fun MainScreen() {
 
     if (showTransferDialog) {
         TransferDialog(
-            titleRes = R.string.sending_files,
             files = transferFiles,
-            onCancel = {
-                viewModel.cancelTransfer()
-                showTransferDialog = false
-                Toast.makeText(
-                    context,
-                    resources.getString(R.string.file_transfer_cancelled),
-                    Toast.LENGTH_LONG
-                ).show()
+            isCompleted = isTransferCompleted,
+            onAction = {
+                if (isTransferCompleted) {
+                    showTransferDialog = false
+                } else {
+                    viewModel.cancelTransfer()
+                    showTransferDialog = false
+                    Toast.makeText(
+                        context,
+                        resources.getString(R.string.file_transfer_cancelled),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             }
         )
     }
