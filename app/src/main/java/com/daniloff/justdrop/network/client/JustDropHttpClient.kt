@@ -148,6 +148,18 @@ class JustDropHttpClient {
             } finally {
                 watchdogJob.cancel()
             }
+
+        }
+    }
+    suspend fun finishTransfer(
+        device: DiscoveredDevice
+    ) {
+        val url = "http://${device.host}:${device.port}/transfer/finish"
+
+        Log.d("HTTP_CLIENT", "POST /transfer/finish -> $url")
+
+        client.post(url) {
+            expectSuccess = true
         }
     }
 }

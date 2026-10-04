@@ -25,5 +25,11 @@
     <string name="sending_files">Sending files</string>
     <string name="file_transfer_cancelled">File transfer cancelled</string>
     <string name="device_unavailable">Device unavailable</string>
-    <string name="transfer_complete">Transfer complete</string>
+    <string name="transfer_completed">Transfer completed</string>
+    <string name="receiving_files">Receiving files</string>
+    <plurals name="received_files_count">
+        <item quantity="one">%2$d out of %1$d file</item>
+        <item quantity="other">%2$d out of %1$d files</item>
+    </plurals>
+    <string name="received_bytes">%1$s out of %2$s</string>
 </resources>

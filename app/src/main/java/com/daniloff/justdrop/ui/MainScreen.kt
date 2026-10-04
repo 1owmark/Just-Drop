@@ -48,13 +48,13 @@ import androidx.compose.ui.platform.LocalResources
 import com.daniloff.justdrop.model.TransferRequestState
 import com.daniloff.justdrop.model.TransferStatus
 import com.daniloff.justdrop.ui.components.DeclinedDialog
+import com.daniloff.justdrop.ui.components.IncomingTransferDialog
 import com.daniloff.justdrop.ui.components.RequestDialog
 import com.daniloff.justdrop.ui.components.TransferDialog
 import com.daniloff.justdrop.utils.truncateFileName
 import kotlinx.coroutines.launch
 
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {
     val scope = rememberCoroutineScope()
@@ -64,6 +64,7 @@ fun MainScreen() {
     val transferRequest by viewModel.transferRequest.collectAsState()
     val transferRequestState by viewModel.transferRequestState.collectAsState()
     val transferFiles by viewModel.transferFiles.collectAsState()
+    val incomingTransfer by viewModel.incomingTransfer.collectAsState()
     val context = LocalContext.current
     val resources = LocalResources.current
     var selectedDevice by remember {
@@ -90,6 +91,11 @@ fun MainScreen() {
             transferFiles.all {
                 it.status == TransferStatus.SUCCESS || it.status == TransferStatus.ERROR
             }
+
+    incomingTransfer?.let { transfer ->
+        IncomingTransferDialog(transfer = transfer,
+            onAction = {})
+    }
 
     // Обработка UI событий
     LaunchedEffect(Unit) {

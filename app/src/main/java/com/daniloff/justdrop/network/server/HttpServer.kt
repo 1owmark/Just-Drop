@@ -3,11 +3,12 @@ package com.daniloff.justdrop.network.server
 import android.content.Context
 import android.os.Build
 import android.util.Log
-import com.daniloff.data.DeviceIdProvider
+import com.daniloff.justdrop.data.DeviceIdProvider
 import com.daniloff.justdrop.model.DeviceInfo
 import com.daniloff.justdrop.model.TransferRequest
 import com.daniloff.justdrop.model.TransferResponse
-import com.daniloff.justdrop.utils.FileStorage
+import com.daniloff.justdrop.data.storage.FileStorage
+import com.daniloff.justdrop.data.storage.ProgressInputStream
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
@@ -34,7 +35,11 @@ class HttpServer(
     private val fileStorage = FileStorage(context)
     private val maxFileSize = 512L * 1024 * 1024 * 1024
     suspend fun start(
-        onTransferRequest: (TransferRequest, CompletableDeferred<TransferResponse>) -> Unit
+        onTransferRequest: (TransferRequest, CompletableDeferred<TransferResponse>) -> Unit,
+        onUploadProgress: (Long) -> Unit,
+        onFileReceived: () -> Unit,
+        onFileError: () -> Unit,
+        onTransferFinished: () -> Unit
     ): Int {
         val server = embeddedServer(CIO, 0, "0.0.0.0") {
 
@@ -54,7 +59,8 @@ class HttpServer(
                         DeviceInfo(
                             deviceId,
                             Build.MANUFACTURER,
-                            Build.MODEL)
+                            Build.MODEL
+                        )
                     )
                 }
 
@@ -71,52 +77,79 @@ class HttpServer(
                 post("/upload") {
                     Log.d("UPLOAD_SERVER", "upload request received")
 
-                    var saved = false
+                    var fileSaved = false
 
-                    call.receiveMultipart(
-                        maxFileSize
-                    ).forEachPart { part ->
-                        Log.d("UPLOAD_SERVER", "part received: ${part::class.simpleName}")
+                    try {
+                        call.receiveMultipart(
+                            maxFileSize
+                        ).forEachPart { part ->
+                            Log.d("UPLOAD_SERVER", "part received: ${part::class.simpleName}")
 
-                        if (part is PartData.FileItem) {
-                            val fileName = part.originalFileName
+                            if (part is PartData.FileItem) {
+                                val fileName = part.originalFileName
 
-                            Log.d("UPLOAD_SERVER", "file: $fileName")
+                                Log.d("UPLOAD_SERVER", "file: $fileName")
 
-                            if (fileName != null) {
-                                val mimeType =
-                                    part.contentType?.toString() ?: "application/octet-stream"
+                                if (fileName != null) {
+                                    val mimeType =
+                                        part.contentType?.toString() ?: "application/octet-stream"
 
-                                Log.d("UPLOAD_SERVER", "saving started")
+                                    Log.d("UPLOAD_SERVER", "saving started")
 
-                                withContext(Dispatchers.IO) {
-                                    part.provider().toInputStream().use { inputStream ->
-                                        fileStorage.save(
-                                            fileName,
-                                            mimeType,
-                                            inputStream
-                                        )
+                                    withContext(Dispatchers.IO) {
+                                        part.provider().toInputStream().use { inputStream ->
+
+                                            val progressInputStream =
+                                                ProgressInputStream(inputStream) { bytes ->
+                                                    onUploadProgress(bytes)
+                                                }
+
+
+                                            fileStorage.save(
+                                                fileName,
+                                                mimeType,
+                                                progressInputStream
+                                            )
+
+                                            fileSaved = true
+                                            onFileReceived()
+                                        }
                                     }
+
+                                    Log.d("UPLOAD_SERVER", "saving finished")
                                 }
-
-                                Log.d("UPLOAD_SERVER", "saving finished")
-
-                                saved = true
                             }
+
+                            part.release()
                         }
 
-                        part.release()
+                        Log.d(
+                            "UPLOAD_SERVER",
+                            "upload request finished, fileSaved=$fileSaved"
+                        )
+                        call.respond(
+                            if (fileSaved) {
+                                HttpStatusCode.OK
+                            } else {
+                                HttpStatusCode.BadRequest
+                            }
+                        )
+                    } catch (e: Exception) {
+                        Log.e(
+                            "UPLOAD_SERVER",
+                            "upload failed: ${e::class.simpleName}: ${e.message}",
+                            e
+                        )
+                        onFileError()
+                        throw e
                     }
+                }
+                post("transfer/finish") {
+                    Log.d("TRANSFER", "finish request received")
 
-                    Log.d("UPLOAD_SERVER", "upload request finished")
+                    onTransferFinished()
 
-                    call.respond(
-                        if (saved) {
-                            HttpStatusCode.OK
-                        } else {
-                            HttpStatusCode.BadRequest
-                        }
-                    )
+                    call.respond(HttpStatusCode.OK)
                 }
             }
         }

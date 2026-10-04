@@ -28,5 +28,13 @@
     <string name="sending_files">Отправка файлов</string>
     <string name="file_transfer_cancelled">Передача файлов отклонена</string>
     <string name="device_unavailable">Устройство недоступно</string>
-    <string name="transfer_complete">Отправка завершена</string>
+    <string name="transfer_completed">Отправка завершена</string>
+    <string name="receiving_files">Получение файлов</string>
+    <plurals name="received_files_count">
+        <item quantity="one">%2$d из %1$d файла</item>
+        <item quantity="few">%2$d из %1$d файлов</item>
+        <item quantity="many">%2$d из %1$d файлов</item>
+        <item quantity="other">%2$d из %1$d файлов</item>
+    </plurals>
+    <string name="received_bytes">%1$s из %2$s</string>
 </resources>

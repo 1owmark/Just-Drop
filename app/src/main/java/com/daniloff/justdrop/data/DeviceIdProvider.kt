@@ -1,4 +1,4 @@
-package com.daniloff.data
+package com.daniloff.justdrop.data
 
 import android.content.Context
 import androidx.datastore.preferences.core.edit

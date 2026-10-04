@@ -44,7 +44,7 @@ fun TransferDialog(
                 Text(
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                     text = if (isCompleted) {
-                        stringResource(R.string.transfer_complete)
+                        stringResource(R.string.transfer_completed)
                     } else {
                         stringResource(R.string.sending_files)
                     },

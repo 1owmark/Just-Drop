@@ -4,14 +4,12 @@ import android.app.Application
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
-import com.daniloff.data.DeviceIdProvider
+import com.daniloff.justdrop.data.DeviceIdProvider
 import com.daniloff.justdrop.model.Device
-import com.daniloff.justdrop.model.DeviceInfo
-import com.daniloff.justdrop.model.DiscoveredDevice
+import com.daniloff.justdrop.model.IncomingTransfer
 import com.daniloff.justdrop.model.PendingTransferRequest
 import com.daniloff.justdrop.model.SelectedFile
 import com.daniloff.justdrop.model.TransferFile
@@ -59,13 +57,49 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _transferRequestState = MutableStateFlow(TransferRequestState.IDLE)
     val transferRequestState = _transferRequestState.asStateFlow()
     private var transferJob: Job? = null
+    private val _incomingTransfer = MutableStateFlow<IncomingTransfer?>(null)
+    val incomingTransfer = _incomingTransfer.asStateFlow()
 
     init {
         viewModelScope.launch {
-            val port = httpServer.start { request, response ->
-                Log.d("HANDSHAKE", "showing request dialog")
-                _transferRequest.value = PendingTransferRequest(request, response)
-            }
+            val port = httpServer.start(
+                onTransferRequest = { request, response ->
+                    Log.d("HANDSHAKE", "showing request dialog")
+                    _transferRequest.value =
+                        PendingTransferRequest(request, response)
+                },
+                onUploadProgress = { bytes ->
+                    _incomingTransfer.update { transfer ->
+                        transfer?.copy(
+                            receivedBytes = transfer.receivedBytes + bytes
+                        )
+                    }
+                },
+                onFileReceived = {
+                    _incomingTransfer.update { transfer ->
+                        transfer?.copy(
+                            completedFiles = transfer.completedFiles + 1
+                        )
+                    }
+                },
+                onFileError = {
+                    Log.d("INCOMING_TRANSFER", "file error")
+                    _incomingTransfer.update { transfer ->
+                        transfer?.copy(
+                            failedFiles = transfer.failedFiles + 1
+                        )
+                    }
+                },
+                onTransferFinished = {
+                    Log.d("INCOMING_TRANSFER", "transfer finished")
+
+                    _incomingTransfer.update { transfer ->
+                        transfer?.copy(
+                            isFinished = true
+                        )
+                    }
+                }
+            )
             deviceDiscovery.start(port)
         }
 
@@ -248,6 +282,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     updateTransferFile(file, TransferStatus.ERROR)
                 }
             }
+            val device = deviceCache[deviceId]
+
+            if (device != null) {
+                httpClient.finishTransfer(device.networkInfo)
+            }
             clearSelectedFiles()
         }
     }
@@ -285,8 +324,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun acceptTransfer() {
-        _transferRequest.value?.response?.complete(
+        val request = _transferRequest.value ?: return
+
+        request.response.complete(
             TransferResponse.ACCEPTED
+        )
+
+        val totalFiles = request.request.files.size
+        val totalBytes = request.request.files.sumOf { it.size }
+
+        _incomingTransfer.value = IncomingTransfer(
+            totalFiles = totalFiles,
+            totalBytes = totalBytes
         )
 
         _transferRequest.value = null

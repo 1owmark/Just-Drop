@@ -1,10 +1,9 @@
-package com.daniloff.justdrop.utils
+package com.daniloff.justdrop.data.storage
 
 import android.content.ContentValues
 import android.content.Context
 import android.os.Environment
 import android.provider.MediaStore
-import android.util.Log
 import java.io.InputStream
 
 class FileStorage(private val context: Context) {
