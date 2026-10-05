@@ -94,7 +94,9 @@ fun MainScreen() {
 
     incomingTransfer?.let { transfer ->
         IncomingTransferDialog(transfer = transfer,
-            onAction = {})
+            onAction = {
+                viewModel.clearIncomingTransfer()
+            })
     }
 
     // Обработка UI событий

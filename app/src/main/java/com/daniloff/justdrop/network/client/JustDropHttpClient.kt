@@ -162,4 +162,16 @@ class JustDropHttpClient {
             expectSuccess = true
         }
     }
+
+    suspend fun cancelTransfer(
+        device: DiscoveredDevice
+    ) {
+        val url = "http://${device.host}:${device.port}/transfer/cancel"
+
+        Log.d("HTTP_CLIENT", "POST /transfer/cancel -> $url")
+
+        client.post(url) {
+            expectSuccess = true
+        }
+    }
 }

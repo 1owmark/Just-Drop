@@ -57,6 +57,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _transferRequestState = MutableStateFlow(TransferRequestState.IDLE)
     val transferRequestState = _transferRequestState.asStateFlow()
     private var transferJob: Job? = null
+    private var transferDeviceId: String? = null
     private val _incomingTransfer = MutableStateFlow<IncomingTransfer?>(null)
     val incomingTransfer = _incomingTransfer.asStateFlow()
 
@@ -82,14 +83,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         )
                     }
                 },
-                onFileError = {
-                    Log.d("INCOMING_TRANSFER", "file error")
-                    _incomingTransfer.update { transfer ->
-                        transfer?.copy(
-                            failedFiles = transfer.failedFiles + 1
-                        )
-                    }
-                },
                 onTransferFinished = {
                     Log.d("INCOMING_TRANSFER", "transfer finished")
 
@@ -97,6 +90,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         transfer?.copy(
                             isFinished = true
                         )
+                    }
+                },
+                onTransferCancelled = {
+                    _incomingTransfer.update { transfer ->
+                        transfer?.copy(isCancelled = true)
                     }
                 }
             )
@@ -227,6 +225,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     // Отправка файлов
     fun sendFiles(deviceId: String) {
+        transferDeviceId = deviceId
         val files = _selectedFiles.value
         transferJob = viewModelScope.launch {
             startTransfer()
@@ -354,6 +353,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun cancelTransfer() {
+        val deviceId = transferDeviceId ?: return
+        val device = deviceCache[deviceId] ?: return
+
+        viewModelScope.launch {
+            try {
+                httpClient.cancelTransfer(device.networkInfo)
+            } catch (e: Exception) {
+                Log.e("TRANSFER", "Failed to cancel transfer", e)
+            }
+        }
+
         transferJob?.cancel()
+    }
+
+    fun clearIncomingTransfer() {
+        _incomingTransfer.value = null
     }
 }

@@ -4,7 +4,7 @@ data class IncomingTransfer(
     val totalFiles: Int,
     val totalBytes: Long,
     val completedFiles: Int = 0,
-    val failedFiles: Int = 0,
     val receivedBytes: Long = 0L,
-    val isFinished: Boolean = false
+    val isFinished: Boolean = false,
+    val isCancelled: Boolean = false
 )

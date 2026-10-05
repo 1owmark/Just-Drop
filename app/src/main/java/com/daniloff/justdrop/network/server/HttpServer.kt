@@ -26,7 +26,12 @@ import io.ktor.server.routing.routing
 import io.ktor.utils.io.jvm.javaio.toInputStream
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.withContext
+import kotlinx.io.IOException
+import java.io.InputStream
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.concurrent.Volatile
 
 class HttpServer(
     private val context: Context,
@@ -34,12 +39,17 @@ class HttpServer(
 ) {
     private val fileStorage = FileStorage(context)
     private val maxFileSize = 512L * 1024 * 1024 * 1024
+    private val transferCancelled = AtomicBoolean(false)
+    private val uploadLock = Any()
+
+    @Volatile
+    private var currentUploadInputStream: InputStream? = null
     suspend fun start(
         onTransferRequest: (TransferRequest, CompletableDeferred<TransferResponse>) -> Unit,
         onUploadProgress: (Long) -> Unit,
         onFileReceived: () -> Unit,
-        onFileError: () -> Unit,
-        onTransferFinished: () -> Unit
+        onTransferFinished: () -> Unit,
+        onTransferCancelled: () -> Unit
     ): Int {
         val server = embeddedServer(CIO, 0, "0.0.0.0") {
 
@@ -71,11 +81,20 @@ class HttpServer(
                     val response = CompletableDeferred<TransferResponse>()
                     onTransferRequest(transferRequest, response)
                     val result = response.await()
+                    if (result == TransferResponse.ACCEPTED) {
+                        transferCancelled.set(false)
+                    }
                     call.respond(result)
                 }
 
                 post("/upload") {
                     Log.d("UPLOAD_SERVER", "upload request received")
+
+                    if (transferCancelled.get()) {
+                        Log.d("UPLOAD_SERVER", "transfer already cancelled")
+                        call.respond(HttpStatusCode.Conflict)
+                        return@post
+                    }
 
                     var fileSaved = false
 
@@ -99,27 +118,39 @@ class HttpServer(
                                     withContext(Dispatchers.IO) {
                                         part.provider().toInputStream().use { inputStream ->
 
-                                            val progressInputStream =
-                                                ProgressInputStream(inputStream) { bytes ->
-                                                    onUploadProgress(bytes)
+                                            synchronized(uploadLock) {
+                                                if (transferCancelled.get()) {
+                                                    throw IOException("Transfer cancelled")
                                                 }
+                                                currentUploadInputStream = inputStream
+                                            }
+
+                                            try {
+                                                val progressInputStream =
+                                                    ProgressInputStream(inputStream) { bytes ->
+                                                        onUploadProgress(bytes)
+                                                    }
 
 
-                                            fileStorage.save(
-                                                fileName,
-                                                mimeType,
-                                                progressInputStream
-                                            )
+                                                fileStorage.save(
+                                                    fileName,
+                                                    mimeType,
+                                                    progressInputStream
+                                                )
 
-                                            fileSaved = true
-                                            onFileReceived()
+                                                fileSaved = true
+                                                onFileReceived()
+                                            } finally {
+                                                synchronized(uploadLock) {
+                                                    currentUploadInputStream = null
+                                                }
+                                            }
                                         }
                                     }
-
-                                    Log.d("UPLOAD_SERVER", "saving finished")
                                 }
-                            }
 
+                                Log.d("UPLOAD_SERVER", "saving finished")
+                            }
                             part.release()
                         }
 
@@ -135,12 +166,19 @@ class HttpServer(
                             }
                         )
                     } catch (e: Exception) {
-                        Log.e(
-                            "UPLOAD_SERVER",
-                            "upload failed: ${e::class.simpleName}: ${e.message}",
-                            e
-                        )
-                        onFileError()
+                        if (transferCancelled.get()) {
+                            Log.d(
+                                "UPLOAD_SERVER",
+                                "upload cancelled"
+                            )
+                        } else {
+                            Log.e(
+                                "UPLOAD_SERVER",
+                                "upload failed: ${e::class.simpleName}: ${e.message}",
+                                e
+                            )
+                        }
+
                         throw e
                     }
                 }
@@ -148,6 +186,18 @@ class HttpServer(
                     Log.d("TRANSFER", "finish request received")
 
                     onTransferFinished()
+
+                    call.respond(HttpStatusCode.OK)
+                }
+                post("/transfer/cancel") {
+                    Log.d("TRANSFER", "cancel request received")
+                    val inputStreamToClose = synchronized(uploadLock) {
+                        transferCancelled.set(true)
+                        currentUploadInputStream
+                    }
+                    inputStreamToClose?.close()
+
+                    onTransferCancelled()
 
                     call.respond(HttpStatusCode.OK)
                 }

@@ -32,4 +32,5 @@
         <item quantity="other">%2$d out of %1$d files</item>
     </plurals>
     <string name="received_bytes">%1$s out of %2$s</string>
+    <string name="transfer_cancelled_by_sender">Transfer canceled by sender</string>
 </resources>
