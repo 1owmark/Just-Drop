@@ -96,6 +96,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     _incomingTransfer.update { transfer ->
                         transfer?.copy(isCancelled = true)
                     }
+                },
+                onTransferError = {
+                    _incomingTransfer.update { transfer ->
+                        transfer?.copy(isError = true)
+                    }
                 }
             )
             deviceDiscovery.start(port)
@@ -227,6 +232,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun sendFiles(deviceId: String) {
         transferDeviceId = deviceId
         val files = _selectedFiles.value
+        var transferFailed = false
+
         transferJob = viewModelScope.launch {
             startTransfer()
 
@@ -276,17 +283,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 } catch (e: CancellationException) {
                     throw e
-                } catch (e: Exception) {
+                }  catch (e: Exception) {
                     _events.emit(UiEvent.FileUploadError(file.name))
                     updateTransferFile(file, TransferStatus.ERROR)
+                    transferFailed = true
+                    break
                 }
             }
-            val device = deviceCache[deviceId]
+            if (!transferFailed) {
+                val device = deviceCache[deviceId]
 
-            if (device != null) {
-                httpClient.finishTransfer(device.networkInfo)
+                if (device != null) {
+                    httpClient.finishTransfer(device.networkInfo)
+                }
+
+                clearSelectedFiles()
             }
-            clearSelectedFiles()
         }
     }
 

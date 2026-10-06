@@ -48,6 +48,12 @@ fun IncomingTransferDialog(
                     )
                 }
 
+                transfer.isError -> {
+                    IncomingTransferErrorContent(
+                        onAction = onAction
+                    )
+                }
+
                 transfer.isFinished -> {
                     IncomingTransferCompletedContent(
                         transfer = transfer,
@@ -177,6 +183,51 @@ private fun IncomingTransferCompletedContent(
         }
     }
 }
+
+@Composable
+private fun IncomingTransferErrorContent(
+    onAction: () -> Unit
+) {
+    Column(
+        Modifier
+            .padding(
+                top = 20.dp,
+                bottom = 8.dp,
+                start = 20.dp,
+                end = 20.dp
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = stringResource(R.string.transmission_interrupted),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(Modifier.height(24.dp))
+
+        Icon(
+            painterResource(R.drawable.cross),
+            contentDescription = null,
+            modifier = Modifier.size(48.dp),
+            tint = Color.Unspecified
+        )
+
+        Spacer(Modifier.height(24.dp))
+
+        TextButton(
+            onClick = onAction
+        ) {
+            Text(
+                text = stringResource(R.string.close),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+    }
+}
+
 @Composable
 private fun IncomingTransferCancelledContent(
     onAction: () -> Unit

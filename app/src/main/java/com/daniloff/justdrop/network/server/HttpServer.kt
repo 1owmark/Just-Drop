@@ -27,11 +27,17 @@ import io.ktor.utils.io.jvm.javaio.toInputStream
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.io.IOException
 import java.io.InputStream
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.concurrent.Volatile
+import kotlin.time.Duration.Companion.milliseconds
 
 class HttpServer(
     private val context: Context,
@@ -41,6 +47,7 @@ class HttpServer(
     private val maxFileSize = 512L * 1024 * 1024 * 1024
     private val transferCancelled = AtomicBoolean(false)
     private val uploadLock = Any()
+    val lastProgressTime = AtomicLong(System.currentTimeMillis())
 
     @Volatile
     private var currentUploadInputStream: InputStream? = null
@@ -49,7 +56,8 @@ class HttpServer(
         onUploadProgress: (Long) -> Unit,
         onFileReceived: () -> Unit,
         onTransferFinished: () -> Unit,
-        onTransferCancelled: () -> Unit
+        onTransferCancelled: () -> Unit,
+        onTransferError: () -> Unit
     ): Int {
         val server = embeddedServer(CIO, 0, "0.0.0.0") {
 
@@ -126,21 +134,54 @@ class HttpServer(
                                             }
 
                                             try {
-                                                val progressInputStream =
-                                                    ProgressInputStream(inputStream) { bytes ->
-                                                        onUploadProgress(bytes)
+                                                coroutineScope {
+                                                    val lastProgressTime =
+                                                        AtomicLong(System.currentTimeMillis())
+
+                                                    val progressInputStream =
+                                                        ProgressInputStream(inputStream) { bytes ->
+                                                            lastProgressTime.set(System.currentTimeMillis())
+                                                            onUploadProgress(bytes)
+                                                        }
+
+                                                    val watchdogJob = launch {
+                                                        while (isActive) {
+                                                            delay(1_000.milliseconds)
+
+                                                            val elapsed =
+                                                                System.currentTimeMillis() - lastProgressTime.get()
+
+                                                            if (elapsed >= 10_000) {
+                                                                Log.d(
+                                                                    "UPLOAD_SERVER",
+                                                                    "no progress for 10 sec, closing input stream"
+                                                                )
+                                                                synchronized(uploadLock) {
+                                                                    currentUploadInputStream?.close()
+                                                                }
+                                                                break
+                                                            }
+                                                        }
                                                     }
 
+                                                    try {
+                                                        fileStorage.save(
+                                                            fileName,
+                                                            mimeType,
+                                                            progressInputStream
+                                                        )
 
-                                                fileStorage.save(
-                                                    fileName,
-                                                    mimeType,
-                                                    progressInputStream
-                                                )
-
-                                                fileSaved = true
-                                                onFileReceived()
+                                                        fileSaved = true
+                                                        onFileReceived()
+                                                    } finally {
+                                                        watchdogJob.cancel()
+                                                    }
+                                                }
                                             } finally {
+                                                Log.d(
+                                                    "UPLOAD_SERVER",
+                                                    "clearing current upload stream"
+                                                )
                                                 synchronized(uploadLock) {
                                                     currentUploadInputStream = null
                                                 }
@@ -148,9 +189,9 @@ class HttpServer(
                                         }
                                     }
                                 }
-
-                                Log.d("UPLOAD_SERVER", "saving finished")
                             }
+
+                            Log.d("UPLOAD_SERVER", "saving finished")
                             part.release()
                         }
 
@@ -177,6 +218,8 @@ class HttpServer(
                                 "upload failed: ${e::class.simpleName}: ${e.message}",
                                 e
                             )
+
+                            onTransferError()
                         }
 
                         throw e
