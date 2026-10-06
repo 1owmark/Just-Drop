@@ -39,4 +39,5 @@
     <string name="received_bytes">%1$s из %2$s</string>
     <string name="transfer_cancelled_by_sender">Отправка отменена отправителем</string>
     <string name="transmission_interrupted">Передача прервана</string>
+    <string name="file_transfer">Передача файлов</string>
 </resources>

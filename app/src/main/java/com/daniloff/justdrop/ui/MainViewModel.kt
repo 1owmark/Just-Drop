@@ -33,6 +33,11 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlin.time.Duration.Companion.milliseconds
+import android.content.Intent
+import androidx.core.content.ContextCompat
+import com.daniloff.justdrop.TransferService
+import com.daniloff.justdrop.data.DeviceCache
+import com.daniloff.justdrop.data.TransferStateHolder
 
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -40,7 +45,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val deviceIdProvider = DeviceIdProvider(application)
     private val httpServer = HttpServer(application, deviceIdProvider)
     private val httpClient = JustDropHttpClient()
-    private val deviceCache: MutableMap<String, Device> = mutableMapOf()
+    private val deviceCache = DeviceCache.devices
     private val _devices = MutableStateFlow<List<Device>>(emptyList())
     val devices = _devices.asStateFlow()
     private val _searchState = MutableStateFlow<DeviceSearchState>(DeviceSearchState.Searching)
@@ -48,8 +53,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var searchTimerJob: Job? = null
     private val _selectedFiles = MutableStateFlow<List<SelectedFile>>(emptyList())
     val selectedFiles = _selectedFiles.asStateFlow()
-    private val _transferFiles = MutableStateFlow<List<TransferFile>>(emptyList())
-    val transferFiles = _transferFiles.asStateFlow()
+    val transferFiles = TransferStateHolder.transferFiles
     private val _events = MutableSharedFlow<UiEvent>()
     val events = _events.asSharedFlow()
     private val _transferRequest = MutableStateFlow<PendingTransferRequest?>(null)
@@ -232,98 +236,31 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun sendFiles(deviceId: String) {
         transferDeviceId = deviceId
         val files = _selectedFiles.value
-        var transferFailed = false
 
         transferJob = viewModelScope.launch {
+            val device = deviceCache[deviceId]
+
+            if (device == null) {
+                return@launch
+            }
+
+            TransferService.start(
+                getApplication(),
+                deviceId,
+                files
+            )
+
             startTransfer()
-
-            for (file in files) {
-                val stream = application.contentResolver.openInputStream(file.uri)
-                val device = deviceCache[deviceId]
-
-                if (device == null) {
-                    updateTransferFile(file, TransferStatus.ERROR)
-                    continue
-                }
-
-                if (stream == null) {
-                    _events.emit(UiEvent.FileOpenError(file.name))
-                    updateTransferFile(file, TransferStatus.ERROR)
-                    continue
-                }
-
-                updateTransferFile(file, TransferStatus.SENDING)
-
-                try {
-                    stream.use {
-                        Log.d("UPLOAD", "uploadFile call started")
-                        httpClient.uploadFile(
-                            device = device.networkInfo,
-                            file = file,
-                            stream = it,
-                            onProgress = { bytesSent, _ ->
-                                val progress = (bytesSent.toFloat() / file.size).coerceIn(0f, 1f)
-
-                                if (bytesSent % (10 * 1024 * 1024) < 4096) {
-                                    Log.d(
-                                        "UPLOAD",
-                                        "sent=$bytesSent / ${file.size}"
-                                    )
-                                }
-
-                                updateTransferFile(
-                                    file,
-                                    TransferStatus.SENDING,
-                                    progress
-                                )
-                            }
-                        )
-                        Log.d("UPLOAD", "uploadFile call finished")
-                        updateTransferFile(file, TransferStatus.SUCCESS)
-                    }
-                } catch (e: CancellationException) {
-                    throw e
-                }  catch (e: Exception) {
-                    _events.emit(UiEvent.FileUploadError(file.name))
-                    updateTransferFile(file, TransferStatus.ERROR)
-                    transferFailed = true
-                    break
-                }
-            }
-            if (!transferFailed) {
-                val device = deviceCache[deviceId]
-
-                if (device != null) {
-                    httpClient.finishTransfer(device.networkInfo)
-                }
-
-                clearSelectedFiles()
-            }
         }
     }
 
     // SelectedFile -> TransferFile
     fun startTransfer() {
-        _transferFiles.value = _selectedFiles.value.map { file ->
+        val files = _selectedFiles.value.map { file ->
             TransferFile(file = file)
         }
-    }
 
-    private fun updateTransferFile(
-        targetFile: SelectedFile,
-        status: TransferStatus,
-        progress: Float? = null
-    ) {
-        _transferFiles.update { files ->
-            files.map {
-                if (it.file == targetFile) {
-                    it.copy(
-                        status = status,
-                        progress = progress ?: it.progress
-                    )
-                } else it
-            }
-        }
+        TransferStateHolder.setFiles(files)
     }
 
     fun deleteFile(file: SelectedFile) {

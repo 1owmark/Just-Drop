@@ -218,11 +218,7 @@ class HttpServer(
                                 "upload failed: ${e::class.simpleName}: ${e.message}",
                                 e
                             )
-
-                            onTransferError()
                         }
-
-                        throw e
                     }
                 }
                 post("transfer/finish") {
