@@ -244,10 +244,19 @@ class HttpServer(
         }
         server.start()
 
+        Log.d(
+            "HTTP_SERVER",
+            "Ktor server started"
+        )
+
         val connectors = server.engine.resolvedConnectors()
         val connector = connectors[0]
         val port = connector.port
         Log.d("httpServer", "port = ${connector.port}\nhost = ${connector.host}")
+        Log.d(
+            "HTTP_SERVER",
+            "Returning port $port"
+        )
         return port
     }
 }

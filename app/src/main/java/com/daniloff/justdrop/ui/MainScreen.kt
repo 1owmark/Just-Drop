@@ -65,6 +65,7 @@ fun MainScreen() {
     val transferRequestState by viewModel.transferRequestState.collectAsState()
     val transferFiles by viewModel.transferFiles.collectAsState()
     val incomingTransfer by viewModel.incomingTransfer.collectAsState()
+    val showIncomingTransfer by viewModel.showIncomingTransfer.collectAsState()
     val context = LocalContext.current
     val resources = LocalResources.current
     var selectedDevice by remember {
@@ -92,11 +93,13 @@ fun MainScreen() {
                 it.status == TransferStatus.SUCCESS || it.status == TransferStatus.ERROR
             }
 
-    incomingTransfer?.let { transfer ->
-        IncomingTransferDialog(transfer = transfer,
+    if (showIncomingTransfer && incomingTransfer != null) {
+        IncomingTransferDialog(
+            transfer = incomingTransfer!!,
             onAction = {
                 viewModel.clearIncomingTransfer()
-            })
+            }
+        )
     }
 
     // Обработка UI событий

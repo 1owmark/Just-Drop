@@ -17,11 +17,9 @@ import com.daniloff.justdrop.model.TransferRequest
 import com.daniloff.justdrop.model.TransferRequestFile
 import com.daniloff.justdrop.model.TransferRequestState
 import com.daniloff.justdrop.model.TransferResponse
-import com.daniloff.justdrop.model.TransferStatus
 import com.daniloff.justdrop.network.client.JustDropHttpClient
 import com.daniloff.justdrop.network.discovery.DeviceDiscovery
 import com.daniloff.justdrop.network.server.HttpServer
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,17 +31,14 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlin.time.Duration.Companion.milliseconds
-import android.content.Intent
-import androidx.core.content.ContextCompat
 import com.daniloff.justdrop.TransferService
 import com.daniloff.justdrop.data.DeviceCache
 import com.daniloff.justdrop.data.TransferStateHolder
+import kotlinx.coroutines.flow.filterNotNull
 
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val deviceDiscovery = DeviceDiscovery(application)
-    private val deviceIdProvider = DeviceIdProvider(application)
-    private val httpServer = HttpServer(application, deviceIdProvider)
     private val httpClient = JustDropHttpClient()
     private val deviceCache = DeviceCache.devices
     private val _devices = MutableStateFlow<List<Device>>(emptyList())
@@ -56,58 +51,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val transferFiles = TransferStateHolder.transferFiles
     private val _events = MutableSharedFlow<UiEvent>()
     val events = _events.asSharedFlow()
-    private val _transferRequest = MutableStateFlow<PendingTransferRequest?>(null)
-    val transferRequest = _transferRequest.asStateFlow()
     private val _transferRequestState = MutableStateFlow(TransferRequestState.IDLE)
     val transferRequestState = _transferRequestState.asStateFlow()
     private var transferJob: Job? = null
     private var transferDeviceId: String? = null
-    private val _incomingTransfer = MutableStateFlow<IncomingTransfer?>(null)
-    val incomingTransfer = _incomingTransfer.asStateFlow()
+    val transferRequest = TransferStateHolder.transferRequest
+    val incomingTransfer = TransferStateHolder.incomingTransfer
+    private val _showIncomingTransfer = MutableStateFlow(false)
+    val showIncomingTransfer =
+        _showIncomingTransfer.asStateFlow()
 
     init {
-        viewModelScope.launch {
-            val port = httpServer.start(
-                onTransferRequest = { request, response ->
-                    Log.d("HANDSHAKE", "showing request dialog")
-                    _transferRequest.value =
-                        PendingTransferRequest(request, response)
-                },
-                onUploadProgress = { bytes ->
-                    _incomingTransfer.update { transfer ->
-                        transfer?.copy(
-                            receivedBytes = transfer.receivedBytes + bytes
-                        )
-                    }
-                },
-                onFileReceived = {
-                    _incomingTransfer.update { transfer ->
-                        transfer?.copy(
-                            completedFiles = transfer.completedFiles + 1
-                        )
-                    }
-                },
-                onTransferFinished = {
-                    Log.d("INCOMING_TRANSFER", "transfer finished")
+        TransferService.startServer(getApplication())
 
-                    _incomingTransfer.update { transfer ->
-                        transfer?.copy(
-                            isFinished = true
-                        )
-                    }
-                },
-                onTransferCancelled = {
-                    _incomingTransfer.update { transfer ->
-                        transfer?.copy(isCancelled = true)
-                    }
-                },
-                onTransferError = {
-                    _incomingTransfer.update { transfer ->
-                        transfer?.copy(isError = true)
-                    }
+        viewModelScope.launch {
+            TransferStateHolder.serverPort
+                .filterNotNull()
+                .collect { port ->
+                    deviceDiscovery.start(port)
                 }
-            )
-            deviceDiscovery.start(port)
         }
 
         viewModelScope.launch {
@@ -244,7 +206,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 return@launch
             }
 
-            TransferService.start(
+            TransferService.startSending(
                 getApplication(),
                 deviceId,
                 files
@@ -272,7 +234,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun acceptTransfer() {
-        val request = _transferRequest.value ?: return
+        val request = TransferStateHolder.transferRequest.value
+            ?: return
 
         request.response.complete(
             TransferResponse.ACCEPTED
@@ -281,20 +244,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val totalFiles = request.request.files.size
         val totalBytes = request.request.files.sumOf { it.size }
 
-        _incomingTransfer.value = IncomingTransfer(
-            totalFiles = totalFiles,
-            totalBytes = totalBytes
+        TransferStateHolder.setIncomingTransfer(
+            IncomingTransfer(
+                totalFiles = totalFiles,
+                totalBytes = totalBytes
+            )
         )
 
-        _transferRequest.value = null
+        showIncomingTransfer()
+        TransferStateHolder.clearIncomingRequest()
     }
 
     fun declineTransfer() {
-        _transferRequest.value?.response?.complete(
+        TransferStateHolder.transferRequest.value?.response?.complete(
             TransferResponse.DECLINED
         )
 
-        _transferRequest.value = null
+        TransferStateHolder.clearIncomingRequest()
     }
 
     fun resetTransferRequestState() {
@@ -317,6 +283,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun clearIncomingTransfer() {
-        _incomingTransfer.value = null
+        TransferStateHolder.setIncomingTransfer(null)
+        _showIncomingTransfer.value = false
+    }
+
+    fun showIncomingTransfer() {
+        _showIncomingTransfer.value = true
     }
 }

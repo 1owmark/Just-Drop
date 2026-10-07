@@ -28,9 +28,14 @@ class DeviceDiscovery(val context: Context) {
     val discoveredDevices = _discoveredDevices.asStateFlow()
     val connectivityManager =
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    private var isStarted = false
 
 
     fun start(httpPort: Int) {
+        if (isStarted) return
+
+        isStarted = true
+
         val serviceInfo = this@DeviceDiscovery.serviceInfo.apply {
             serviceName = context.getString(R.string.app_name)
             serviceType = "_http._tcp."
