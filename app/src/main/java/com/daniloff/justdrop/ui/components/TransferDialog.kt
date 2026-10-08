@@ -61,7 +61,7 @@ fun TransferDialog(
                         TransferFileItem(file)
                     }
                 }
-                Spacer(Modifier.height(30.dp))
+                Spacer(Modifier.height(20.dp))
                 TextButton(
                     onClick = onAction
                 ) {

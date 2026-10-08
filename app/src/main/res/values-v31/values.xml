@@ -1,0 +1,13 @@
+<resources>
+
+    <style name="Theme.JustDrop"
+        parent="android:style/Theme.Material.Light.NoActionBar">
+
+        <item name="android:windowSplashScreenBackground">#121212</item>
+        <item name="android:windowSplashScreenAnimatedIcon">
+            @drawable/ic_launcher_foreground
+        </item>
+
+    </style>
+
+</resources>

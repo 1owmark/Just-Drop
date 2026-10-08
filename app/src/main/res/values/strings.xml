@@ -35,4 +35,5 @@
     <string name="transfer_cancelled_by_sender">Transfer canceled by sender</string>
     <string name="transmission_interrupted">Transmission interrupted</string>
     <string name="file_transfer">File transfer</string>
+    <string name="ready_for_transfer">Ready for transfer</string>
 </resources>

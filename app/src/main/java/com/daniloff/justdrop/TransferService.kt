@@ -1,5 +1,6 @@
 package com.daniloff.justdrop
 
+import android.Manifest
 import android.app.Notification
 import android.app.Service
 import android.content.Intent
@@ -7,9 +8,12 @@ import android.os.IBinder
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
+import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import com.daniloff.justdrop.data.DeviceCache
@@ -205,13 +209,32 @@ class TransferService : Service() {
                 getString(R.string.app_name)
             )
             .setContentText(
-                getString(R.string.file_transfer)
+                getString(R.string.ready_for_transfer)
             )
             .setSmallIcon(
-                R.drawable.ic_launcher_foreground
+                R.drawable.ic_launcher_monochrome
             )
             .setOngoing(true)
             .build()
+    }
+
+    private fun updateNotification(text: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+
+        NotificationManagerCompat.from(this).notify(
+            NOTIFICATION_ID,
+            NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle(getString(R.string.app_name))
+                .setContentText(text)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setOngoing(true)
+                .build()
+        )
     }
 
     override fun onStartCommand(
@@ -265,6 +288,8 @@ class TransferService : Service() {
                     EXTRA_FILES
                 )
                 .orEmpty()
+
+        updateNotification(getString(R.string.file_transfer))
 
         transferJob = serviceScope.launch {
             var isCancelled = false

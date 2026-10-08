@@ -58,6 +58,8 @@ fun TransferFileItem(
                 )
             }
 
+            Spacer(Modifier.height(5.dp))
+
             when (file.status) {
                 TransferStatus.WAITING -> {
                     WaitingTransferState()
@@ -65,8 +67,7 @@ fun TransferFileItem(
 
                 TransferStatus.SENDING -> {
                     SendingTransferState(
-                        progress = file.progress,
-                        speed = file.speed
+                        progress = file.progress
                     )
                 }
 
@@ -94,20 +95,11 @@ private fun WaitingTransferState() {
 @Composable
 private fun SendingTransferState(
     progress: Float,
-    speed: Long
 ) {
     Column {
         LinearProgressIndicator(
             progress = { progress },
             modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(4.dp))
-
-        Text(
-            text = "${formatFileSize(speed)}/с",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onBackground
         )
     }
 }

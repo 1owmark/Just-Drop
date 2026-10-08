@@ -15,14 +15,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
-                != PackageManager.PERMISSION_GRANTED
-            ) {
-                requestPermissions(
-                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                    100
-                )
+            val permissions = mutableListOf(
+                Manifest.permission.POST_NOTIFICATIONS
+            )
+
+            if (Build.VERSION.SDK_INT >= 37) {
+                permissions += Manifest.permission.ACCESS_LOCAL_NETWORK
             }
+
+            requestPermissions(permissions.toTypedArray(), 100)
         }
 
         enableEdgeToEdge()
