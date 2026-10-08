@@ -185,6 +185,7 @@ fun MainScreen() {
             onAction = {
                 if (isTransferCompleted) {
                     showTransferDialog = false
+                    viewModel.clearSelectedFiles()
                 } else {
                     viewModel.cancelTransfer()
                     showTransferDialog = false

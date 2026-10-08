@@ -24,10 +24,13 @@ import com.daniloff.justdrop.data.TransferStateHolder
 import com.daniloff.justdrop.model.PendingTransferRequest
 import com.daniloff.justdrop.model.TransferStatus
 import com.daniloff.justdrop.network.server.HttpServer
+import kotlinx.coroutines.Job
+import kotlin.coroutines.cancellation.CancellationException
 
 class TransferService : Service() {
     private val httpClient = JustDropHttpClient()
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var transferJob: Job? = null
     private lateinit var httpServer: HttpServer
 
     override fun onCreate() {
@@ -39,6 +42,7 @@ class TransferService : Service() {
             this,
             DeviceIdProvider(this)
         )
+
         Log.d(
             "TRANSFER_SERVICE",
             "HttpServer instance created"
@@ -124,29 +128,58 @@ class TransferService : Service() {
         private const val EXTRA_DEVICE_ID = "device_id"
         private const val EXTRA_FILES = "files"
         private const val EXTRA_SERVER_MODE = "server_mode"
+        private const val ACTION_CANCEL_TRANSFER =
+            "com.daniloff.justdrop.CANCEL_TRANSFER"
 
         fun startSending(
             context: Context,
             deviceId: String,
             files: List<SelectedFile>
         ) {
-            val intent = Intent(context, TransferService::class.java).apply {
+            val intent = Intent(
+                context,
+                TransferService::class.java
+            ).apply {
                 putExtra(EXTRA_DEVICE_ID, deviceId)
+
                 putParcelableArrayListExtra(
                     EXTRA_FILES,
                     ArrayList(files)
                 )
             }
 
-            ContextCompat.startForegroundService(context, intent)
+            ContextCompat.startForegroundService(
+                context,
+                intent
+            )
         }
 
         fun startServer(context: Context) {
-            val intent = Intent(context, TransferService::class.java).apply {
-                putExtra(EXTRA_SERVER_MODE, true)
+            val intent = Intent(
+                context,
+                TransferService::class.java
+            ).apply {
+                putExtra(
+                    EXTRA_SERVER_MODE,
+                    true
+                )
             }
 
-            ContextCompat.startForegroundService(context, intent)
+            ContextCompat.startForegroundService(
+                context,
+                intent
+            )
+        }
+
+        fun cancelSending(context: Context) {
+            val intent = Intent(
+                context,
+                TransferService::class.java
+            ).apply {
+                action = ACTION_CANCEL_TRANSFER
+            }
+
+            context.startService(intent)
         }
     }
 
@@ -156,15 +189,27 @@ class TransferService : Service() {
             getString(R.string.file_transfer),
             NotificationManager.IMPORTANCE_LOW
         )
-        val manager = getSystemService(NotificationManager::class.java)
+
+        val manager =
+            getSystemService(NotificationManager::class.java)
+
         manager.createNotificationChannel(channel)
     }
 
     private fun createNotification(): Notification {
-        return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(getString(R.string.app_name))
-            .setContentText(getString(R.string.file_transfer))
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+        return NotificationCompat.Builder(
+            this,
+            CHANNEL_ID
+        )
+            .setContentTitle(
+                getString(R.string.app_name)
+            )
+            .setContentText(
+                getString(R.string.file_transfer)
+            )
+            .setSmallIcon(
+                R.drawable.ic_launcher_foreground
+            )
             .setOngoing(true)
             .build()
     }
@@ -183,30 +228,58 @@ class TransferService : Service() {
             ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
         )
 
-        val serverMode =
-            intent?.getBooleanExtra(EXTRA_SERVER_MODE, false) == true
+        if (intent?.action == ACTION_CANCEL_TRANSFER) {
+            Log.d(
+                "TRANSFER_SERVICE",
+                "Cancel command received"
+            )
 
-        if (serverMode) {
-            Log.d("TRANSFER_SERVICE", "Started in server mode")
+            transferJob?.cancel()
+
             return START_STICKY
         }
 
-        val deviceId = intent?.getStringExtra(EXTRA_DEVICE_ID)
+        val serverMode =
+            intent?.getBooleanExtra(
+                EXTRA_SERVER_MODE,
+                false
+            ) == true
 
-        val files = intent
-            ?.getParcelableArrayListExtra<SelectedFile>(EXTRA_FILES)
-            .orEmpty()
+        if (serverMode) {
+            Log.d(
+                "TRANSFER_SERVICE",
+                "Started in server mode"
+            )
 
-        serviceScope.launch {
+            return START_STICKY
+        }
+
+        val deviceId =
+            intent?.getStringExtra(
+                EXTRA_DEVICE_ID
+            )
+
+        val files =
+            intent
+                ?.getParcelableArrayListExtra<SelectedFile>(
+                    EXTRA_FILES
+                )
+                .orEmpty()
+
+        transferJob = serviceScope.launch {
+            var isCancelled = false
+
             for (file in files) {
                 try {
-                    val device = DeviceCache.devices[deviceId]
+                    val device =
+                        DeviceCache.devices[deviceId]
 
                     if (device == null) {
                         Log.d(
                             "TRANSFER_SERVICE",
                             "Device disappeared"
                         )
+
                         continue
                     }
 
@@ -216,7 +289,9 @@ class TransferService : Service() {
                     )
 
                     val stream =
-                        contentResolver.openInputStream(file.uri)
+                        contentResolver.openInputStream(
+                            file.uri
+                        )
 
                     if (stream == null) {
                         Log.e(
@@ -239,8 +314,13 @@ class TransferService : Service() {
                             stream = it,
                             onProgress = { bytesSent, _ ->
                                 val progress =
-                                    (bytesSent.toFloat() / file.size)
-                                        .coerceIn(0f, 1f)
+                                    (
+                                            bytesSent.toFloat() /
+                                                    file.size
+                                            ).coerceIn(
+                                            0f,
+                                            1f
+                                        )
 
                                 TransferStateHolder.updateFile(
                                     file,
@@ -262,6 +342,16 @@ class TransferService : Service() {
                         1f
                     )
 
+                } catch (e: CancellationException) {
+                    Log.d(
+                        "TRANSFER_SERVICE",
+                        "Transfer cancelled"
+                    )
+
+                    isCancelled = true
+
+                    break
+
                 } catch (e: Exception) {
                     Log.e(
                         "TRANSFER_SERVICE",
@@ -278,29 +368,44 @@ class TransferService : Service() {
                 }
             }
 
-            try {
-                val device = DeviceCache.devices[deviceId]
+            if (!isCancelled) {
+                try {
+                    val device =
+                        DeviceCache.devices[deviceId]
 
-                if (device != null) {
-                    httpClient.finishTransfer(
-                        device.networkInfo
+                    if (device != null) {
+                        httpClient.finishTransfer(
+                            device.networkInfo
+                        )
+                    }
+
+                } catch (e: Exception) {
+                    Log.e(
+                        "TRANSFER_SERVICE",
+                        "Failed to finish transfer",
+                        e
                     )
                 }
-            } catch (e: Exception) {
-                Log.e(
+            } else {
+                Log.d(
                     "TRANSFER_SERVICE",
-                    "Failed to finish transfer",
-                    e
+                    "Skipping finishTransfer because transfer was cancelled"
                 )
             }
 
-            stopSelf()
+            transferJob = null
+
+            if (!isCancelled) {
+                stopSelf()
+            }
         }
 
         return START_NOT_STICKY
     }
 
-    override fun onBind(intent: Intent?): IBinder? {
+    override fun onBind(
+        intent: Intent?
+    ): IBinder? {
         return null
     }
 }

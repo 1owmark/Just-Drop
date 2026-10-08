@@ -86,7 +86,7 @@ private fun IncomingTransferContent(
         Modifier
             .padding(
                 top = 20.dp,
-                bottom = 8.dp,
+                bottom = 20.dp,
                 start = 20.dp,
                 end = 20.dp
             ),

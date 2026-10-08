@@ -47,8 +47,8 @@ class JustDropHttpClient {
         }
 
         install(HttpTimeout) {
-            connectTimeoutMillis = 5_000
-            socketTimeoutMillis = 10_000
+            connectTimeoutMillis = 10_000
+            socketTimeoutMillis = 60_000
         }
     }
 

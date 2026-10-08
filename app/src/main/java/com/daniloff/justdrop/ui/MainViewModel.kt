@@ -7,10 +7,8 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
-import com.daniloff.justdrop.data.DeviceIdProvider
 import com.daniloff.justdrop.model.Device
 import com.daniloff.justdrop.model.IncomingTransfer
-import com.daniloff.justdrop.model.PendingTransferRequest
 import com.daniloff.justdrop.model.SelectedFile
 import com.daniloff.justdrop.model.TransferFile
 import com.daniloff.justdrop.model.TransferRequest
@@ -19,7 +17,6 @@ import com.daniloff.justdrop.model.TransferRequestState
 import com.daniloff.justdrop.model.TransferResponse
 import com.daniloff.justdrop.network.client.JustDropHttpClient
 import com.daniloff.justdrop.network.discovery.DeviceDiscovery
-import com.daniloff.justdrop.network.server.HttpServer
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,7 +26,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.update
 import kotlin.time.Duration.Companion.milliseconds
 import com.daniloff.justdrop.TransferService
 import com.daniloff.justdrop.data.DeviceCache
@@ -273,13 +269,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             try {
-                httpClient.cancelTransfer(device.networkInfo)
+                httpClient.cancelTransfer(
+                    device.networkInfo
+                )
             } catch (e: Exception) {
-                Log.e("TRANSFER", "Failed to cancel transfer", e)
+                Log.e(
+                    "TRANSFER",
+                    "Failed to cancel transfer",
+                    e
+                )
             }
         }
 
-        transferJob?.cancel()
+        TransferService.cancelSending(
+            getApplication()
+        )
     }
 
     fun clearIncomingTransfer() {
