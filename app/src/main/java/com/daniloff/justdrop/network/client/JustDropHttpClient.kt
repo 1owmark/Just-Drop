@@ -1,6 +1,5 @@
 package com.daniloff.justdrop.network.client
 
-import android.util.Log
 import com.daniloff.justdrop.model.DeviceInfo
 import com.daniloff.justdrop.model.DiscoveredDevice
 import com.daniloff.justdrop.model.SelectedFile
@@ -64,7 +63,6 @@ class JustDropHttpClient {
     ): TransferResponse {
         val url = "http://${device.host}:${device.port}/transfer/request"
 
-        Log.d("HTTP_CLIENT", "POST /transfer/request -> $url")
         return client.post(url) {
             contentType(ContentType.Application.Json)
             setBody(request)
@@ -78,9 +76,6 @@ class JustDropHttpClient {
         onProgress: (Long, Long?) -> Unit
     ) {
         val url = "http://${device.host}:${device.port}/upload"
-
-        Log.d("HTTP_CLIENT", "POST /upload -> $url")
-        Log.d("UPLOAD", "uploadFile started")
 
         supervisorScope {
             val lastProgressTime = AtomicLong(System.currentTimeMillis())
@@ -156,8 +151,6 @@ class JustDropHttpClient {
     ) {
         val url = "http://${device.host}:${device.port}/transfer/finish"
 
-        Log.d("HTTP_CLIENT", "POST /transfer/finish -> $url")
-
         client.post(url) {
             expectSuccess = true
         }
@@ -167,8 +160,6 @@ class JustDropHttpClient {
         device: DiscoveredDevice
     ) {
         val url = "http://${device.host}:${device.port}/transfer/cancel"
-
-        Log.d("HTTP_CLIENT", "POST /transfer/cancel -> $url")
 
         client.post(url) {
             expectSuccess = true

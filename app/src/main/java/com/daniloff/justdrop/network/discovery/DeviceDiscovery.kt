@@ -6,7 +6,6 @@ import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
 import android.os.Build
 import android.util.Log
-import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
 import com.daniloff.justdrop.R
 import com.daniloff.justdrop.model.DiscoveredDevice
@@ -186,9 +185,9 @@ class DeviceDiscovery(val context: Context) {
 
     @RequiresExtension(extension = Build.VERSION_CODES.TIRAMISU, version = 7)
     private fun getIpv4Address(serviceInfo: NsdServiceInfo): Inet4Address? {
-        val addressess = serviceInfo.hostAddresses
+        val addresses = serviceInfo.hostAddresses
 
-        for (address in addressess) {
+        for (address in addresses) {
             if (address is Inet4Address) {
                 return address
             }

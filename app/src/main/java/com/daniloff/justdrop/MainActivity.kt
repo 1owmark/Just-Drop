@@ -1,7 +1,6 @@
 package com.daniloff.justdrop
 
 import android.Manifest
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity

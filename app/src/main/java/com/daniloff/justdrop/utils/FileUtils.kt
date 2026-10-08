@@ -1,6 +1,5 @@
 package com.daniloff.justdrop.utils
 
-
 import java.text.DecimalFormat
 import kotlin.math.pow
 

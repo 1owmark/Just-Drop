@@ -40,26 +40,14 @@ class TransferService : Service() {
     override fun onCreate() {
         super.onCreate()
 
-        Log.d("TRANSFER_SERVICE", "onCreate")
-
         httpServer = HttpServer(
             this,
             DeviceIdProvider(this)
         )
 
-        Log.d(
-            "TRANSFER_SERVICE",
-            "HttpServer instance created"
-        )
-
         serviceScope.launch {
             val port = httpServer.start(
                 onTransferRequest = { request, response ->
-                    Log.d(
-                        "HANDSHAKE",
-                        "transfer request received"
-                    )
-
                     TransferStateHolder.setIncomingRequest(
                         PendingTransferRequest(
                             request,
@@ -117,11 +105,6 @@ class TransferService : Service() {
             )
 
             TransferStateHolder.setServerPort(port)
-
-            Log.d(
-                "TRANSFER_SERVICE",
-                "Server started on port $port"
-            )
         }
     }
 
@@ -252,11 +235,6 @@ class TransferService : Service() {
         )
 
         if (intent?.action == ACTION_CANCEL_TRANSFER) {
-            Log.d(
-                "TRANSFER_SERVICE",
-                "Cancel command received"
-            )
-
             transferJob?.cancel()
 
             return START_STICKY
@@ -269,11 +247,6 @@ class TransferService : Service() {
             ) == true
 
         if (serverMode) {
-            Log.d(
-                "TRANSFER_SERVICE",
-                "Started in server mode"
-            )
-
             return START_STICKY
         }
 
