@@ -1,0 +1,6 @@
+Initial release of Just Drop.
+
+Discover nearby Android devices on the same Wi-Fi network
+Send multiple files directly between devices
+Accept or decline incoming transfers
+Track transfer progress

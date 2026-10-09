@@ -1,0 +1,20 @@
+Just Drop is an open-source Android app for transferring files directly between devices connected to the same Wi-Fi network.
+
+Features:
+
+<ul> 
+<li>Discover nearby devices on the local network</li> 
+<li>Send multiple files between Android devices</li> 
+<li>Accept or decline incoming transfers</li> 
+<li>Track transfer progress</li> 
+<li>Transfer files locally without cloud storage or an external server</li> <
+/ul>
+
+Requirements:
+
+<ul> 
+<li>Android 10 (API 29) or later</li> 
+<li>Both devices must be connected to the same Wi-Fi network</li> 
+</ul>
+
+Source code: https://github.com/1owmark/Just-Drop
