@@ -34,7 +34,7 @@ Download the latest APK from the [GitHub Releases](https://github.com/1owmark/Ju
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/1owmark/Just-Drop.git
+   git clone https://github.com/daniloff-m/Just-Drop.git
    ```
 
 2. Open the project in Android Studio.
